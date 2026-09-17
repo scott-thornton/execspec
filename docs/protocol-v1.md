@@ -13,6 +13,13 @@ integer `1`.
 - Invalid UTF-8 and malformed JSON are protocol failures.
 - No sockets, HTTP, FFI, or multiplexing in v1.
 
+ADR (v0.1, Swift runtime): the plan suggested Foundation's JSON
+facilities for parsing, but `JSONSerialization` cannot preserve exact
+numeric spellings or reject duplicate object keys — both required by
+this protocol. The Swift runtime therefore ships a strict hand-written
+JSON parser/serializer with those guarantees; Foundation remains in use
+for process I/O. Observable wire behavior is unchanged (and stricter).
+
 ## 2. Process lifecycle
 
 A scenario gets its own host process:
