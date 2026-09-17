@@ -179,3 +179,31 @@ test("spawned CLI binary behaves identically", async () => {
   });
   assert.equal(code, 0);
 });
+
+test("test command supports --scenario filtering and --concurrency", async () => {
+  const work = await mkdtemp(join(tmpdir(), "execspec-cli-"));
+  const ir = join(work, "kv.execspec.json");
+  await runCli(["compile", "--module", join(fixtures, "spec-module.mjs"), "--out", ir], bufferedIO().io);
+
+  const filtered = bufferedIO();
+  assert.equal(
+    await runCli(["test", "--ir", ir, "--host", join(fixtures, "echo-host.mjs"), "--scenario", "roundtrip"], filtered.io),
+    0,
+  );
+  assert.match(filtered.out(), /PASS kv\.echo\.roundtrip/);
+  assert.doesNotMatch(filtered.out(), /PASS kv\.other/);
+  assert.match(filtered.out(), /1 passed, 0 failed/);
+
+  const noMatch = bufferedIO();
+  assert.equal(
+    await runCli(["test", "--ir", ir, "--host", join(fixtures, "echo-host.mjs"), "--scenario", "nope"], noMatch.io),
+    0,
+  );
+  assert.match(noMatch.out(), /0 passed, 0 failed/);
+
+  const badConcurrency = bufferedIO();
+  assert.equal(
+    await runCli(["test", "--ir", ir, "--host", join(fixtures, "echo-host.mjs"), "--concurrency", "0"], badConcurrency.io),
+    2,
+  );
+});

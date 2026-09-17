@@ -14,7 +14,7 @@ import { parseFlags } from "./compile-command.js";
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export async function testCommand(args: readonly string[], io: CliIO): Promise<number> {
-  const { values, missing } = parseFlags(args, ["--ir", "--host"], ["--timeout-ms"]);
+  const { values, missing } = parseFlags(args, ["--ir", "--host"], ["--timeout-ms", "--scenario", "--concurrency"]);
   if (missing.length > 0) {
     io.writeErr(`test: missing required flags: ${missing.join(", ")}\n`);
     return 2;
@@ -28,6 +28,17 @@ export async function testCommand(args: readonly string[], io: CliIO): Promise<n
       return 2;
     }
     timeoutMs = parsed;
+  }
+
+  const concurrencyRaw = values["--concurrency"];
+  let concurrency: number | undefined;
+  if (concurrencyRaw !== undefined) {
+    const parsedConcurrency = Number.parseInt(concurrencyRaw, 10);
+    if (!Number.isInteger(parsedConcurrency) || parsedConcurrency < 1) {
+      io.writeErr(`test: --concurrency must be a positive integer, got ${concurrencyRaw}\n`);
+      return 2;
+    }
+    concurrency = parsedConcurrency;
   }
 
   const irPath = resolve(values["--ir"] ?? "");
@@ -57,6 +68,8 @@ export async function testCommand(args: readonly string[], io: CliIO): Promise<n
   const results = await runSpecification(decoded.document, {
     hostCommand: { executable: resolve(values["--host"] ?? ""), args: [] },
     timeoutMs,
+    scenarioFilter: values["--scenario"],
+    concurrency,
   });
   io.writeOut(renderReport(results));
   const { failed } = summarize(results);

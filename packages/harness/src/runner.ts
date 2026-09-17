@@ -37,6 +37,11 @@ export interface ScenarioResult {
 export interface RunOptions {
   readonly hostCommand: HostCommand;
   readonly timeoutMs: number;
+  /** Substring filter on scenario IDs (default: all). */
+  readonly scenarioFilter?: string | undefined;
+  /** Parallel scenario slots; 1 or undefined runs sequentially. Scenarios
+   *  are process-isolated, so parallelism cannot leak state. */
+  readonly concurrency?: number | undefined;
 }
 
 export async function runScenario(
@@ -182,12 +187,32 @@ export async function runSpecification(
   document: SemanticIRDocument,
   options: RunOptions,
 ): Promise<readonly ScenarioResult[]> {
-  const ordered = [...document.semantic.scenarios].sort((left, right) =>
-    compareByCodePoint(left.id, right.id),
-  );
-  const results: ScenarioResult[] = [];
-  for (const scenario of ordered) {
-    results.push(await runScenario(document, scenario, options));
+  const ordered = [...document.semantic.scenarios]
+    .sort((left, right) => compareByCodePoint(left.id, right.id))
+    .filter((scenario) =>
+      options.scenarioFilter === undefined ? true : scenario.id.includes(options.scenarioFilter),
+    );
+  const concurrency = options.concurrency === undefined ? 1 : Math.max(1, options.concurrency);
+  if (concurrency === 1) {
+    const results: ScenarioResult[] = [];
+    for (const scenario of ordered) {
+      results.push(await runScenario(document, scenario, options));
+    }
+    return results;
   }
-  return results;
+  // Worker-pool parallelism; results keep canonical order.
+  const results = new Array<ScenarioResult | undefined>(ordered.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, ordered.length) }, async () => {
+    while (next < ordered.length) {
+      const index = next;
+      next += 1;
+      const scenario = ordered[index];
+      if (scenario !== undefined) {
+        results[index] = await runScenario(document, scenario, options);
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results.filter((result): result is ScenarioResult => result !== undefined);
 }

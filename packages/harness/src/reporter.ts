@@ -4,7 +4,7 @@
  */
 
 import type { EqualityDifference, ScenarioId, SemanticValue } from "@execspec/core";
-import { compareByCodePoint } from "@execspec/core";
+import { canonicalFloat64Spelling, compareByCodePoint } from "@execspec/core";
 import type { ScenarioResult } from "./runner.js";
 
 export function renderSemanticValue(value: SemanticValue): string {
@@ -15,8 +15,22 @@ export function renderSemanticValue(value: SemanticValue): string {
       return value.value ? "true" : "false";
     case "int64":
       return value.value.toString(10);
+    case "float64":
+      return canonicalFloat64Spelling(value.value);
     case "string":
       return JSON.stringify(value.value);
+    case "bytes":
+      return `bytes(${value.value.length})`;
+    case "map": {
+      const keys = [...value.entries.keys()]
+        .map((key) => (typeof key === "bigint" ? key.toString(10) : key))
+        .sort(compareByCodePoint);
+      const rendered = keys.map((key) => {
+        const entry = value.entries.get(typeof key === "bigint" ? BigInt(key) : key);
+        return `${JSON.stringify(key)}: ${entry === undefined ? "?" : renderSemanticValue(entry)}`;
+      });
+      return `{${rendered.join(", ")}}`;
+    }
     case "list":
       return `[${value.values.map(renderSemanticValue).join(", ")}]`;
     case "struct": {
