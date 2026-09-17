@@ -8,12 +8,13 @@
     "node": ">=24"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/kv-spec"
   ],
   "scripts": {
-    "build": "npm run build -w @execspec/core && npm run build -w @execspec/compiler && npm run build -w @execspec/dsl && npm run build -w @execspec/swift-generator && npm run build -w @execspec/harness && npm run build -w @execspec/cli",
-    "typecheck": "npm run typecheck -w @execspec/core && npm run typecheck -w @execspec/compiler && npm run typecheck -w @execspec/dsl && npm run typecheck -w @execspec/swift-generator && npm run typecheck -w @execspec/harness && npm run typecheck -w @execspec/cli",
-    "test": "npm run test -w @execspec/core && npm run test -w @execspec/compiler && npm run test -w @execspec/dsl && npm run test -w @execspec/swift-generator && npm run test -w @execspec/harness && npm run test -w @execspec/cli",
+    "build": "npm run build -w @execspec/core && npm run build -w @execspec/compiler && npm run build -w @execspec/dsl && npm run build -w @execspec/swift-generator && npm run build -w @execspec/harness && npm run build -w @execspec/cli && npm run build -w @execspec/example-kv-spec",
+    "typecheck": "npm run typecheck -w @execspec/core && npm run typecheck -w @execspec/compiler && npm run typecheck -w @execspec/dsl && npm run typecheck -w @execspec/swift-generator && npm run typecheck -w @execspec/harness && npm run typecheck -w @execspec/cli && npm run typecheck -w @execspec/example-kv-spec",
+    "test": "npm run test -w @execspec/core && npm run test -w @execspec/compiler && npm run test -w @execspec/dsl && npm run test -w @execspec/swift-generator && npm run test -w @execspec/harness && npm run test -w @execspec/cli && npm run test -w @execspec/example-kv-spec",
     "test:swift": "swift test --package-path targets/swift-runtime && swift test --package-path examples/kv-swift",
     "acceptance": "bash scripts/acceptance.sh",
     "check": "npm run typecheck && npm test && npm run test:swift && npm run acceptance"
