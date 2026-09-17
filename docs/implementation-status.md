@@ -29,3 +29,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 10: canonical JSON (canonical-json.ts): code-point key sorting, stable arrays, standard escaping, safe-integer numbers only. Green (59 tests).
 - Task 11: semantic-value JSON codec (semantic-value-json.ts): type-directed decode with issue paths, validated encode, full-width int64 wire, null/unknown-field/union-shape rejections. Green.
 - Task 12: deterministic IR serialization + SHA-256 digest + strict document decoder (digest.ts). ADR added to docs/ir-v1.md: literals require static type contexts (no both-literal expectEqual, no literal field bases) so wire-form literal decoding is total. Green (75 tests).
+- Tasks 13-17: DSL (specification/type/operation/scenario builders, expressions) + compiler (validate-authoring, normalize, compileSpecification) complete. dsl 13 tests, compiler 7 tests green.
