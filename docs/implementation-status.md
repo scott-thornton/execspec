@@ -26,3 +26,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 7: portable semantic equality (equality.ts): diff paths, nominal identity, order rules. Green (35 tests).
 - Task 8: Semantic IR v1 types (ir.ts) per docs/ir-v1.md. Green (38 tests).
 - Task 9: IR validation + static expression typing (validate-ir.ts): duplicates, unknown refs, cycles, optional-unit, zero-op/zero-scenario/zero-step, forward/duplicate bindings, field traversal, literal deep validation, expectEqual type checks. Green (52 tests).
+- Task 10: canonical JSON (canonical-json.ts): code-point key sorting, stable arrays, standard escaping, safe-integer numbers only. Green (59 tests).
