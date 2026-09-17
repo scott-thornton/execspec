@@ -182,7 +182,7 @@ function listHelperSource(component: string): string {
 }
 
 func encodeValue_${component}(_ value: ${swiftType}) throws -> JSONValue {
-    .array(value.map { try ${encoder}($0) })
+    .array(try value.map { try ${encoder}($0) })
 }`;
 }
 
