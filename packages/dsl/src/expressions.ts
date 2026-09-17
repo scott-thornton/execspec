@@ -1,5 +1,5 @@
 /**
- * Scenario value expressions (plan §2.8). Static data only — no
+ * Scenario value expressions (plan §2.8). Static data only - no
  * callbacks, no promises, no arbitrary computation.
  */
 

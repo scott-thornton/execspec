@@ -1,7 +1,7 @@
 /**
  * `execspec compile` (plan Task 35): import a compiled ESM spec module,
  * validate, compile, write canonical IR, print the digest. No direct
- * `.ts` loading in v0.1 — the example package builds explicitly.
+ * `.ts` loading in v0.1 - the example package builds explicitly.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";

@@ -1,4 +1,4 @@
-// The KV implementation in TypeScript — the same contract the Swift
+// The KV implementation in TypeScript - the same contract the Swift
 // KVStore implements, proving one specification, two languages.
 
 import type {
@@ -34,7 +34,7 @@ export class KVStore implements KVSpecificationImplementation {
   }
 
   public kvList(_input: ExecSpecUnit): KeyList {
-    // Ascending Unicode scalar order — UTF-8 byte order, exactly like
+    // Ascending Unicode scalar order - UTF-8 byte order, exactly like
     // the Swift implementation.
     const keys = [...this.values.keys()].sort((left, right) =>
       Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8")),

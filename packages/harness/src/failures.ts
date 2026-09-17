@@ -1,7 +1,7 @@
 /**
  * Conformance failure classification (plan Task 32). Protocol, process,
  * decoding, crash, and timeout failures are implementation/harness
- * failures — never domain values.
+ * failures - never domain values.
  */
 
 import type { ScenarioId } from "@execspec/core";

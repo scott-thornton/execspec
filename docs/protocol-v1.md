@@ -1,4 +1,4 @@
-# Process Protocol — Protocol Version: 1
+# Process Protocol - Protocol Version: 1
 
 This document is normative for execspec v0.1. `protocolVersion` is the
 integer `1`.
@@ -15,7 +15,7 @@ integer `1`.
 
 ADR (v0.1, Swift runtime): the plan suggested Foundation's JSON
 facilities for parsing, but `JSONSerialization` cannot preserve exact
-numeric spellings or reject duplicate object keys — both required by
+numeric spellings or reject duplicate object keys - both required by
 this protocol. The Swift runtime therefore ships a strict hand-written
 JSON parser/serializer with those guarantees. Observable wire behavior
 is unchanged (and stricter).

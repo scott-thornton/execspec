@@ -1,8 +1,8 @@
 // ExecSpecRuntime: canonical float64 spelling (docs/semantic-model.md
 // §3.1, ADR). Produces exactly what ECMAScript's
-// Number.prototype.toString() produces — shortest round-trip decimal,
+// Number.prototype.toString() produces - shortest round-trip decimal,
 // decimal notation for 1e-6 ≤ |x| < 1e21, exponent notation otherwise,
-// "NaN"/"Infinity"/"-Infinity" literals, -0 → "0" — so every target
+// "NaN"/"Infinity"/"-Infinity" literals, -0 → "0" - so every target
 // emits identical wire bytes.
 
 import Foundation

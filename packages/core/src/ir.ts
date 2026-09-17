@@ -1,5 +1,5 @@
 /**
- * Semantic IR v1 (docs/ir-v1.md). Types only — construction happens in
+ * Semantic IR v1 (docs/ir-v1.md). Types only - construction happens in
  * the compiler; decoding/encoding live in canonical-json/digest modules.
  */
 

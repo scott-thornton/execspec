@@ -1,6 +1,6 @@
 /**
  * Canonical IR serialization, specification digest, and strict document
- * decoding (docs/ir-v1.md §3–§4).
+ * decoding (docs/ir-v1.md §3-§4).
  */
 
 import { createHash } from "node:crypto";

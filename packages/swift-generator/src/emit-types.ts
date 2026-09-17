@@ -1,6 +1,6 @@
 /**
  * Swift type emission (plan Task 23). Sendable, no Codable, no
- * Equatable — portable equality belongs to the semantic layer.
+ * Equatable - portable equality belongs to the semantic layer.
  */
 
 import type { TypeDeclaration, ValueType } from "@execspec/core";

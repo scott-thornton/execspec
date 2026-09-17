@@ -1,4 +1,4 @@
-# Semantic Model — Version 1
+# Semantic Model - Version 1
 
 This document is normative for execspec v0.1. It defines the type system,
 the value model, portable equality, and the wire (JSON) representation of
@@ -32,7 +32,7 @@ different type IDs are different types.
 
 ### 1.3 Restrictions (v0.1)
 
-- `optional` appears only on struct fields — never at top level, in lists,
+- `optional` appears only on struct fields - never at top level, in lists,
   as a union payload, or nested beneath another optional.
 - Anonymous composite declarations are prohibited.
 - No recursive types (the type graph must be acyclic; a declaration may
@@ -48,7 +48,7 @@ A semantic value is one of:
 
 | Kind      | Payload                                        |
 | --------- | ---------------------------------------------- |
-| `unit`    | —                                              |
+| `unit`    | -                                             |
 | `boolean` | `true` / `false`                               |
 | `int64`   | signed two's-complement integer, −2^63 .. 2^63−1 |
 | `string`  | exact sequence of Unicode scalar values        |

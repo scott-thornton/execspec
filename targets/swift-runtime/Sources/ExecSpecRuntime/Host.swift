@@ -1,4 +1,4 @@
-// ExecSpecRuntime: host loop (docs/protocol-v1.md §2–§5).
+// ExecSpecRuntime: host loop (docs/protocol-v1.md §2-§5).
 //
 // Handshake first; protocol version or digest mismatch exits nonzero
 // before any operation is dispatched. Requests are sequential in v1.

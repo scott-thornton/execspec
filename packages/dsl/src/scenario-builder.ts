@@ -1,5 +1,5 @@
 /**
- * Scenario DSL (plan §2.6–2.8, Task 16). Scenarios are declarative
+ * Scenario DSL (plan §2.6-2.8, Task 16). Scenarios are declarative
  * programs compiled to static Scenario IR; the builder never executes
  * operations and exposes no promises.
  */

@@ -176,7 +176,7 @@ export function listValue(values: readonly SemanticValue[]): ListValue {
   return { kind: "list", values: [...values] };
 }
 
-/** Authoring sugar: plain runtime values convert unambiguously —
+/** Authoring sugar: plain runtime values convert unambiguously -
  *  string → string, bigint → int64, number → float64, boolean → boolean,
  *  Uint8Array → bytes, arrays → list. Plain objects are rejected:
  *  nominal structs/unions/maps need explicit constructors. */

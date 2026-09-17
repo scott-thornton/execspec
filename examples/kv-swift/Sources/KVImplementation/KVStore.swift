@@ -28,7 +28,7 @@ public actor KVStore: KVSpecificationImplementation {
     }
 
     public func kvList(_ input: ExecSpecUnit) async throws -> KeyList {
-        // Ascending Unicode scalar lexical order — UTF-8 byte order, so
+        // Ascending Unicode scalar lexical order - UTF-8 byte order, so
         // dictionary iteration order can never leak through.
         let keys = values.keys.sorted { left, right in
             left.utf8.lexicographicallyPrecedes(right.utf8)

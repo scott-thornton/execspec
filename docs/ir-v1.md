@@ -1,4 +1,4 @@
-# Semantic IR — IR Version: 1
+# Semantic IR - IR Version: 1
 
 This document is normative for execspec v0.1. It defines the exact
 TypeScript interfaces, the JSON encoding, canonical serialization, and the
@@ -160,7 +160,7 @@ Canonical IR JSON:
 
 1. UTF-8, no BOM, no insignificant whitespace.
 2. Object keys sorted lexicographically by Unicode code point (recursive,
-   explicit key sorting — never object insertion order).
+   explicit key sorting - never object insertion order).
 3. Arrays remain in semantic canonical order.
 4. Declaration arrays are sorted: types by `id`, operations by `id`,
    scenarios by `id`.
@@ -193,9 +193,9 @@ step order changes the digest.
 
 The compiler statically infers the type of every value expression:
 
-- `literal` — the nominal/primitive type carried by the value.
-- `binding` — the output type of the bound call.
-- `field` — on a struct base, the field's declared type; on a union base,
+- `literal` - the nominal/primitive type carried by the value.
+- `binding` - the output type of the bound call.
+- `field` - on a struct base, the field's declared type; on a union base,
   the reserved pseudo-field `value` is legal only when every non-unit
   payload case of the union shares one identical payload type (the common
   type is the inferred type); mixed payload types are rejected as

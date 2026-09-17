@@ -1,6 +1,6 @@
 /**
  * Scenario expression evaluator (plan Task 31). Field traversal is
- * struct fields and the union payload pseudo-field only — no map-style
+ * struct fields and the union payload pseudo-field only - no map-style
  * indexing.
  */
 

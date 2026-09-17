@@ -1,10 +1,10 @@
-# execspec — agent guidance
+# execspec - agent guidance
 
 Executable specification system: a TypeScript DSL authors types,
 operations, and scenarios; compilation produces canonical Semantic IR
 (SHA-256 digest); Swift and TypeScript targets are generated from the IR
 only; a harness verifies any implementation as a black box over NDJSON.
-The normative documents live in `docs/` — start with
+The normative documents live in `docs/` - start with
 `docs/specification.md`. Decisions affecting semantics, IR, protocol, or
 public APIs require an ADR-style section in the relevant doc before
 implementation.
@@ -19,13 +19,13 @@ runs exactly this on a macOS runner.
 ## Rules that must not erode
 
 - Generators consume IR only: `@execspec/swift-generator` and
-  `@execspec/ts-generator` depend on `@execspec/core` and nothing else —
+  `@execspec/ts-generator` depend on `@execspec/core` and nothing else -
   never on the DSL or compiler.
 - The harness (`@execspec/harness`) depends on `@execspec/core` only and
   executes Scenario IR, never authoring code.
 - Generated sources under `examples/*/` are committed. After any
   generator change, regenerate every target directory and require an
-  empty `git diff` — byte-identical regeneration is a contract.
+  empty `git diff` - byte-identical regeneration is a contract.
 - Domain failures are union values in operation outputs; exceptions are
   for genuine defects.
 - Determinism is a contract: identical IR always produces identical

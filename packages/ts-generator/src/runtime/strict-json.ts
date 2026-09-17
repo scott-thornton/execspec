@@ -1,7 +1,7 @@
 /**
  * Strict JSON parser for the TS host runtime: rejects duplicate object
  * keys, malformed numbers, invalid escapes, lone surrogate escapes, raw
- * control characters, and trailing garbage — the same guarantees the
+ * control characters, and trailing garbage - the same guarantees the
  * Swift runtime's parser provides. Input is a string whose UTF-8 was
  * already validated by the transport (fatal TextDecoder).
  */

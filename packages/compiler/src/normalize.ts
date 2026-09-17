@@ -36,7 +36,7 @@ export function compileSpecification(graph: AuthoringGraph): CompileResult {
     return { ok: false, diagnostics: authoringDiagnostics };
   }
 
-  // Stages 2–4: resolve named references, lower DSL markers (already
+  // Stages 2-4: resolve named references, lower DSL markers (already
   // lowered by the type builders), construct Semantic IR.
   const semantic: SemanticIR = {
     specificationName: graph.specificationName,

@@ -1,6 +1,6 @@
 /**
  * AuthoringGraph: what the DSL constructs and the compiler consumes.
- * Authoring shape only — no target-language knowledge.
+ * Authoring shape only - no target-language knowledge.
  */
 
 import type { OperationId, ScenarioId } from "@execspec/core";

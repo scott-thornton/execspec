@@ -1,4 +1,4 @@
-// The handwritten ordering implementation (TypeScript target) — the
+// The handwritten ordering implementation (TypeScript target) - the
 // same business rules as the Swift OrderStore, proven by the same
 // fifteen scenarios.
 

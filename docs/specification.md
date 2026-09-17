@@ -1,4 +1,4 @@
-# Executable Specification System — Specification
+# Executable Specification System - Specification
 
 This document is normative for execspec v0.1.
 
@@ -105,9 +105,9 @@ names. Operation ID segments may additionally contain `-` (kebab words).
 A scenario is a **declarative program**: an ordered list of steps, each
 either:
 
-- `call` — invoke an operation with an input value expression and bind the
+- `call` - invoke an operation with an input value expression and bind the
   output under a binding name.
-- `expectEqual` — compare two value expressions for portable semantic
+- `expectEqual` - compare two value expressions for portable semantic
   equality.
 
 Value expressions are `literal`, `binding` (a previous call binding), or

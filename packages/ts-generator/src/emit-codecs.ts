@@ -2,7 +2,7 @@
  * TypeScript codec emission. Mirrors the Swift codecs byte-for-byte on
  * the wire: int64/float64/bytes tagged strings, struct/enum/union
  * shapes, encoded-key maps. All failures are ExecSpecHostFailure
- * ("invalidRequest") — never domain outputs.
+ * ("invalidRequest") - never domain outputs.
  */
 
 import type { SemanticIR, TypeDeclaration, ValueType } from "@execspec/core";

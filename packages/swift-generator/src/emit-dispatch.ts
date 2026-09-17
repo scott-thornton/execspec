@@ -1,7 +1,7 @@
 /**
  * Swift dispatcher emission (plan Task 26). The dispatcher contains only
  * the operation switch, input decode, implementation call, and output
- * encode — no product logic. The digest is a generated constant.
+ * encode - no product logic. The digest is a generated constant.
  */
 
 import type { OperationIR, SemanticIR } from "@execspec/core";

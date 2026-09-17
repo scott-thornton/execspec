@@ -13,13 +13,13 @@ protocol.
 A v0.1 vertical slice of an executable specification system:
 
 - **Author** types, operations, and behavioral scenarios in TypeScript
-  through a static DSL — no callbacks, no async test bodies; scenarios
+  through a static DSL - no callbacks, no async test bodies; scenarios
   compile to data.
 - **Compile** to canonical Semantic IR whose SHA-256 digest is the
   specification's identity. Declaration order is non-semantic; scenario
   step order is.
 - **Generate** Swift types, an implementation protocol, wire codecs, and
-  a dispatcher — all deterministic, all derived from IR only.
+  a dispatcher - all deterministic, all derived from IR only.
 - **Implement** the generated protocol by hand; the harness spawns your
   host as a black box, one fresh process per scenario, and judges only
   portable observations over NDJSON on stdin/stdout.
@@ -53,7 +53,7 @@ Packages: `@execspec/core` (semantic model, IR, digest),
 
 ## Install
 
-The packages are not yet published to npm — use it from a clone:
+The packages are not yet published to npm - use it from a clone:
 
 ```bash
 git clone <this-repository>
@@ -99,14 +99,14 @@ export default spec.build();
 
 Two complete examples live in the repository:
 
-- `examples/kv-spec` — the systems example: eleven scenarios including
+- `examples/kv-spec` - the systems example: eleven scenarios including
   the full-width int64 wire proof and process isolation, implemented in
   both Swift (`examples/kv-swift`) and TypeScript (`examples/kv-ts`).
-- `examples/orders-spec` — a realistic ordering domain: carts, exact
+- `examples/orders-spec` - a realistic ordering domain: carts, exact
   integer money math, promo thresholds, currency rules, and checkout
   with decline paths. Fifteen scenarios pin the business rules; the
   same suite passes against the Swift (`examples/orders-swift`) and
-  TypeScript (`examples/orders-ts`) implementations — identical money,
+  TypeScript (`examples/orders-ts`) implementations - identical money,
   identical behavior, two languages.
 
 ## Compile it
@@ -129,9 +129,9 @@ node packages/cli/dist/index.js generate swift \
   --out ./examples/kv-swift/Sources/KVGenerated
 ```
 
-This produces exactly four files — `ExecSpecTypes.swift`,
+This produces exactly four files - `ExecSpecTypes.swift`,
 `ExecSpecImplementation.swift`, `ExecSpecCodecs.swift`,
-`ExecSpecDispatcher.swift` — into the output directory atomically.
+`ExecSpecDispatcher.swift` - into the output directory atomically.
 
 ## Implement the generated Swift contract
 
@@ -186,7 +186,7 @@ node packages/cli/dist/index.js generate typescript \
 
 The same IR generates a TypeScript contract (`examples/kv-ts`): a
 handwritten `KVStore` implements it, and the **same conformance suite**
-verifies it — one specification, two languages, identical verdicts.
+verifies it - one specification, two languages, identical verdicts.
 
 ```bash
 node packages/cli/dist/index.js test --ir ./build/kv.execspec.json --host ./examples/kv-ts/host.mjs
@@ -232,7 +232,7 @@ when all scenarios pass.
   the generated Swift sources, so `git diff` after regeneration must be
   empty.
 - A digest mismatch at handshake means stale generated code or a stale
-  host build — regenerate and rebuild.
+  host build - regenerate and rebuild.
 - Target-native Swift tests remain appropriate for Swift-specific
   concerns (actor behavior, codec edges); conformance is what the
   harness proves.
@@ -249,6 +249,16 @@ sequential requests per host; no callbacks/streaming/reset; no
 property-based testing. The CLI loads compiled ESM modules, not raw
 `.ts` files. Parallel scenario execution is available via
 `--concurrency`, and `--scenario` filters by id substring.
+
+## Documentation
+
+- `docs/getting-started.md` - the full walkthrough: author, compile,
+  generate both targets, implement, run conformance, troubleshoot.
+- `docs/cli-reference.md` - every command, flag, and exit code.
+- `docs/specification.md`, `docs/semantic-model.md`, `docs/ir-v1.md`,
+  `docs/protocol-v1.md` - the normative documents.
+- `CONTRIBUTING.md` and `AGENTS.md` - how to change this repository
+  (and the rules that must not erode).
 
 ## Repository development commands
 

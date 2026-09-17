@@ -1,6 +1,6 @@
 /**
  * Scenario outlines: one authored shape, a table of rows, N compiled
- * scenarios. Pure authoring sugar — the compiler only ever sees plain
+ * scenarios. Pure authoring sugar - the compiler only ever sees plain
  * scenarios, so no semantics change.
  */
 

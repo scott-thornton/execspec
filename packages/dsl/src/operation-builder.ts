@@ -1,6 +1,6 @@
 /**
  * Operation DSL (plan Task 15). One semantic input, one semantic output;
- * no throws, no sync/async — execution asynchrony is target-level.
+ * no throws, no sync/async - execution asynchrony is target-level.
  */
 
 import { parseOperationId } from "@execspec/core";

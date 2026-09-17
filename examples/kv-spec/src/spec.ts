@@ -1,5 +1,5 @@
 /**
- * The KV reference specification (plan Tasks 38–39).
+ * The KV reference specification (plan Tasks 38-39).
  *
  * A stateful key/value store with a diagnostic int64 echo operation that
  * proves full-width signed integers survive the whole pipeline.

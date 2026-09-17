@@ -1,7 +1,7 @@
 /**
  * Canonical JSON serialization (docs/ir-v1.md §3).
  *
- * Explicit recursive key sorting by Unicode code point — never
+ * Explicit recursive key sorting by Unicode code point - never
  * `JSON.stringify` object insertion order.
  */
 
