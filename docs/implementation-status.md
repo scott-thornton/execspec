@@ -20,3 +20,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 2: normative docs created (specification, semantic-model, ir-v1, protocol-v1, autonomous-loop) + docs existence/header test in cli. Green.
 - Task 3: identifier validation (ids.ts) with grammar tests. Green (8 tests).
 - Task 4: semantic type AST (types.ts) with factories and structural guards. Green (12 tests).
+- Task 5: canonical semantic value model (semantic-value.ts): discriminated values, int64 bigint range, surrogate-free strings, nominal structs/unions. Green.
