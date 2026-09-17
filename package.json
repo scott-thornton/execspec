@@ -1,6 +1,6 @@
 {
   "name": "execspec",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Executable specification system: TypeScript-authored specs compile to canonical semantic IR, Swift is generated as an implementation target, and a harness verifies implementations over a language-neutral process protocol.",
@@ -9,12 +9,13 @@
   },
   "workspaces": [
     "packages/*",
-    "examples/kv-spec"
+    "examples/kv-spec",
+    "examples/kv-ts"
   ],
   "scripts": {
-    "build": "npm run build -w @execspec/core && npm run build -w @execspec/compiler && npm run build -w @execspec/dsl && npm run build -w @execspec/swift-generator && npm run build -w @execspec/harness && npm run build -w @execspec/cli && npm run build -w @execspec/example-kv-spec",
-    "typecheck": "npm run build && npm run typecheck -w @execspec/core && npm run typecheck -w @execspec/compiler && npm run typecheck -w @execspec/dsl && npm run typecheck -w @execspec/swift-generator && npm run typecheck -w @execspec/harness && npm run typecheck -w @execspec/cli && npm run typecheck -w @execspec/example-kv-spec",
-    "test": "npm run test -w @execspec/core && npm run test -w @execspec/compiler && npm run test -w @execspec/dsl && npm run test -w @execspec/swift-generator && npm run test -w @execspec/harness && npm run test -w @execspec/cli && npm run test -w @execspec/example-kv-spec",
+    "build": "npm run build -w @execspec/core && npm run build -w @execspec/compiler && npm run build -w @execspec/dsl && npm run build -w @execspec/swift-generator && npm run build -w @execspec/ts-generator && npm run build -w @execspec/harness && npm run build -w @execspec/cli && npm run build -w @execspec/example-kv-spec && npm run build -w @execspec/example-kv-ts",
+    "typecheck": "npm run build && npm run typecheck -w @execspec/core && npm run typecheck -w @execspec/compiler && npm run typecheck -w @execspec/dsl && npm run typecheck -w @execspec/swift-generator && npm run typecheck -w @execspec/ts-generator && npm run typecheck -w @execspec/harness && npm run typecheck -w @execspec/cli && npm run typecheck -w @execspec/example-kv-spec && npm run typecheck -w @execspec/example-kv-ts",
+    "test": "npm run test -w @execspec/core && npm run test -w @execspec/compiler && npm run test -w @execspec/dsl && npm run test -w @execspec/swift-generator && npm run test -w @execspec/ts-generator && npm run test -w @execspec/harness && npm run test -w @execspec/cli && npm run test -w @execspec/example-kv-spec",
     "test:swift": "swift test --package-path targets/swift-runtime && swift test --package-path examples/kv-swift",
     "acceptance": "bash scripts/acceptance.sh",
     "check": "npm run typecheck && npm test && npm run test:swift && npm run acceptance"

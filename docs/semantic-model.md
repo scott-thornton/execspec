@@ -9,10 +9,12 @@ semantic values.
 ### 1.1 Value types
 
 ```text
-ValueType      := Primitive | TypeRef | ListType
-Primitive      := unit | boolean | int64 | string
+ValueType      := Primitive | TypeRef | ListType | MapType
+Primitive      := unit | boolean | int64 | float64 | string | bytes
 TypeRef        := ref(TypeId)
 ListType       := list(ValueType)
+MapType        := map(KeyType, ValueType)
+KeyType        := string | int64        (v0.2 restriction)
 ```
 
 ### 1.2 Named declarations
@@ -51,6 +53,9 @@ A semantic value is one of:
 | `int64`   | signed two's-complement integer, −2^63 .. 2^63−1 |
 | `string`  | exact sequence of Unicode scalar values        |
 | `list`    | ordered sequence of semantic values            |
+| `float64` | IEEE 754 double (see §3.1 ADR)                 |
+| `bytes`   | exact byte sequence                            |
+| `map`     | string/int64 keys → semantic values, unordered |
 | `struct`  | nominal type ID + field name → value map       |
 | `enum`    | nominal type ID + case name                    |
 | `union`   | nominal type ID + case name + optional payload |
@@ -73,7 +78,9 @@ codecs. It is identical on every target.
 unit     → {}                                    (empty JSON object)
 boolean  → true | false
 int64    → {"$i64":"<canonical decimal>"}        (tagged string)
+float64  → {"$f64":"<canonical spelling>"}       (tagged string)
 string   → "<exact JSON string>"
+bytes    → {"$b64":"<canonical padded base64>"}  (tagged string)
 ```
 
 Canonical int64 decimal spelling:
@@ -83,6 +90,31 @@ Canonical int64 decimal spelling:
 
 Therefore 9223372036854775807 and -9223372036854775808 both survive every
 transport without precision loss.
+
+#### ADR: canonical float64 spelling (v0.2)
+
+The canonical spelling of a double is exactly what ECMAScript
+`Number.prototype.toString()` produces: the shortest round-trip decimal,
+plain decimal notation for 1e-6 ≤ |x| < 1e21, exponent notation
+otherwise, and the literals `"NaN"`, `"Infinity"`, `"-Infinity"`.
+Consequences: `-0` canonicalizes to `"0"`, so −0 ≡ +0 under portable
+equality; NaN is a value, so NaN ≡ NaN. The Swift runtime implements the
+same algorithm (`ExecSpecFloat64`), so every target emits identical
+bytes; decoding rejects any spelling that is not already canonical.
+
+#### bytes
+
+Standard base64 (RFC 4648 §4, with padding). Decoding rejects
+unpadded, over-padded, whitespace-bearing, and URL-safe spellings by
+re-encoding and comparing.
+
+#### maps
+
+A map value is a JSON object whose keys are the encoded keys: string
+keys are themselves; int64 keys are canonical decimal spellings. Key
+types are restricted to `string` and `int64` so wire keys stay
+canonical. Map equality is order-insensitive; canonical IR
+serialization sorts encoded keys by Unicode code point.
 
 ### 3.2 Lists
 

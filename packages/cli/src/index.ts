@@ -7,6 +7,7 @@
 import { pathToFileURL } from "node:url";
 import { compileCommand } from "./compile-command.js";
 import { generateSwiftCommand } from "./generate-swift-command.js";
+import { generateTypescriptCommand } from "./generate-typescript-command.js";
 import { testCommand } from "./test-command.js";
 
 export interface CliIO {
@@ -26,6 +27,7 @@ export const defaultIO: CliIO = {
 const USAGE = `usage:
   execspec compile --module <spec.js> --out <file.execspec.json>
   execspec generate swift --ir <file.execspec.json> --out <dir>
+  execspec generate typescript --ir <file.execspec.json> --out <dir>
   execspec test --ir <file.execspec.json> --host <executable> [--timeout-ms <n>]
 `;
 
@@ -40,6 +42,9 @@ export async function runCli(argv: readonly string[], io: CliIO = defaultIO): Pr
   }
   if (command === "generate" && rest[0] === "swift") {
     return await generateSwiftCommand(rest.slice(1), io);
+  }
+  if (command === "generate" && rest[0] === "typescript") {
+    return await generateTypescriptCommand(rest.slice(1), io);
   }
   if (command === "test") {
     return await testCommand(rest, io);

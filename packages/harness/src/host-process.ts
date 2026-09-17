@@ -10,7 +10,7 @@ import type { JSONValue } from "@execspec/core";
 import { LineReader } from "./line-reader.js";
 import {
   PROTOCOL_VERSION,
-  WIRE_TARGET,
+  WIRE_TARGETS,
   decodeHostMessage,
   encodeHello,
   encodeRequest,
@@ -187,10 +187,10 @@ export function spawnHost(command: HostCommand): Promise<HostProcess> {
                 `specification digest mismatch: harness ${expectedDigest}, host ${message.specificationDigest}`,
               );
             }
-            if (message.target !== WIRE_TARGET) {
+            if (!WIRE_TARGETS.includes(message.target)) {
               throw new ConformanceError(
                 "HandshakeFailure",
-                `unexpected target '${message.target}', expected '${WIRE_TARGET}'`,
+                `unexpected target '${message.target}', expected one of ${WIRE_TARGETS.join(", ")}`,
               );
             }
           })();

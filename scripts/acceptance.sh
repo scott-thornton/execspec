@@ -22,8 +22,11 @@ $CLI generate swift --ir build/kv.execspec.json --out examples/kv-swift/Sources/
 echo "== build the Swift host =="
 swift build --package-path examples/kv-swift
 
-echo "== conformance: good implementation must pass =="
+echo "== conformance: Swift implementation must pass =="
 $CLI test --ir build/kv.execspec.json --host examples/kv-swift/.build/debug/KVHost
+
+echo "== conformance: TypeScript implementation must pass the same spec =="
+$CLI test --ir build/kv.execspec.json --host examples/kv-ts/host.mjs
 
 echo "== determinism: second compile is byte-identical =="
 $CLI compile --module examples/kv-spec/dist/spec.js --out build/kv.execspec.json.2
@@ -32,6 +35,8 @@ cmp build/kv.execspec.json build/kv.execspec.json.2
 echo "== determinism: second generation is byte-identical =="
 $CLI generate swift --ir build/kv.execspec.json --out build/gen2 >/dev/null
 diff -r build/gen2 examples/kv-swift/Sources/KVGenerated
+$CLI generate typescript --ir build/kv.execspec.json --out build/gen-ts >/dev/null
+diff -r build/gen-ts examples/kv-ts/src/KVGenerated
 
 echo "== negative conformance: broken implementation must fail =="
 if $CLI test --ir build/kv.execspec.json --host examples/kv-swift/.build/debug/KVBrokenHost > build/broken.out 2>&1; then

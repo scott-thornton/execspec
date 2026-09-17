@@ -60,7 +60,8 @@ Rules:
 - Specification digest mismatch: the host exits nonzero without
   dispatching any operation. This is the staleness barrier.
 - The harness verifies `protocolVersion`, `specificationDigest`, and
-  `target` (`"swift"` is the only v1 target) in `helloAck`.
+  `target` in `helloAck`. The target identifies the implementation
+  language; v0.2 accepts `"swift"` and `"typescript"`.
 
 ## 4. Requests and responses
 

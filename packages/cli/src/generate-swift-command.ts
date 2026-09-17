@@ -53,12 +53,12 @@ export async function generateSwiftCommand(args: readonly string[], io: CliIO): 
     return 1;
   }
 
-  await writeAtomically(outDir, files);
+  await writeDirectoryAtomically(outDir, files);
   io.writeOut(`${files.map((file) => file.relativePath).join("\n")}\n`);
   return 0;
 }
 
-async function writeAtomically(outDir: string, files: readonly GeneratedFile[]): Promise<void> {
+export async function writeDirectoryAtomically(outDir: string, files: readonly GeneratedFile[]): Promise<void> {
   const parent = dirname(outDir);
   await mkdir(parent, { recursive: true });
   const staging = await mkdtemp(resolve(tmpdir(), `${basename(outDir)}.staging-`));

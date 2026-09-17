@@ -161,6 +161,22 @@ only; domain failures (like `GetResult.missing`) are output values.
 swift build --package-path examples/kv-swift
 ```
 
+## Generate TypeScript (the second implementation target)
+
+```bash
+node packages/cli/dist/index.js generate typescript \
+  --ir ./build/kv.execspec.json \
+  --out ./examples/kv-ts/src/KVGenerated
+```
+
+The same IR generates a TypeScript contract (`examples/kv-ts`): a
+handwritten `KVStore` implements it, and the **same conformance suite**
+verifies it — one specification, two languages, identical verdicts.
+
+```bash
+node packages/cli/dist/index.js test --ir ./build/kv.execspec.json --host ./examples/kv-ts/host.mjs
+```
+
 ## Run conformance tests
 
 ```bash
@@ -208,13 +224,16 @@ when all scenarios pass.
 
 ## Current v0.1 limitations
 
-Only `unit`, `boolean`, `int64`, `string`, optional struct fields,
-`list`, named structs, enums, and tagged unions; no floats, bytes,
-timestamps, maps, sets, tuples, or recursive types. Scenarios support
-only `call` and `expectEqual` steps with literal/binding/field
-expressions. One implementation target (Swift), sequential requests,
-no callbacks/streaming/reset, no property-based testing, no parallel
-scenarios. The CLI loads compiled ESM modules, not raw `.ts` files.
+Type system: `unit`, `boolean`, `int64`, `float64`, `string`, `bytes`,
+optional struct fields, `list`, `map<string|int64, T>`, named structs,
+enums, and tagged unions; no timestamps, sets, tuples, or recursive
+types. Scenarios support only `call` and `expectEqual` steps with
+literal/binding/field expressions (plus table-driven outlines at
+authoring time). Two implementation targets (Swift, TypeScript);
+sequential requests per host; no callbacks/streaming/reset; no
+property-based testing. The CLI loads compiled ESM modules, not raw
+`.ts` files. Parallel scenario execution is available via
+`--concurrency`, and `--scenario` filters by id substring.
 
 ## Repository development commands
 
