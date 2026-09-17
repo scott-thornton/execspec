@@ -30,9 +30,28 @@ export interface StringValue {
   readonly value: string;
 }
 
+/** IEEE 754 double. Portable equality and wire form are defined by the
+ *  canonical ECMAScript spelling (docs/semantic-model.md §3.1): -0
+ *  canonicalizes to "0", NaN equals NaN. */
+export interface Float64Value {
+  readonly kind: "float64";
+  readonly value: number;
+}
+
+export interface BytesValue {
+  readonly kind: "bytes";
+  readonly value: Uint8Array;
+}
+
 export interface ListValue {
   readonly kind: "list";
   readonly values: readonly SemanticValue[];
+}
+
+/** Map value with string or bigint (int64) keys; order-insensitive. */
+export interface MapValue {
+  readonly kind: "map";
+  readonly entries: ReadonlyMap<string | bigint, SemanticValue>;
 }
 
 export interface StructValue {
@@ -58,8 +77,11 @@ export type SemanticValue =
   | UnitValue
   | BooleanValue
   | Int64Value
+  | Float64Value
   | StringValue
+  | BytesValue
   | ListValue
+  | MapValue
   | StructValue
   | EnumValue
   | UnionValue;
@@ -80,6 +102,52 @@ export function int64Value(value: bigint): Int64Value {
     throw new Error(`int64 out of range: ${value}`);
   }
   return { kind: "int64", value };
+}
+
+/** NaN and the infinities are legal semantic values; only the runtime
+ *  type is validated (NaN is a value here, not IEEE arithmetic). */
+export function float64Value(value: number): Float64Value {
+  if (typeof value !== "number") {
+    throw new Error("float64 values must be numbers");
+  }
+  return { kind: "float64", value };
+}
+
+export function bytesValue(value: Uint8Array): BytesValue {
+  if (!(value instanceof Uint8Array)) {
+    throw new Error("bytes values must be Uint8Array");
+  }
+  return { kind: "bytes", value: new Uint8Array(value) };
+}
+
+export function mapValue(entries: ReadonlyMap<string | bigint, SemanticValue>): MapValue {
+  for (const key of entries.keys()) {
+    if (typeof key !== "string" && typeof key !== "bigint") {
+      throw new Error("map keys must be string or bigint");
+    }
+    if (typeof key === "string" && !isValidUnicodeString(key)) {
+      throw new Error("map keys must be valid Unicode strings");
+    }
+  }
+  return { kind: "map", entries: new Map(entries) };
+}
+
+function isValidUnicodeString(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const codeUnit = value.charCodeAt(i);
+    const isHigh = codeUnit >= 0xd800 && codeUnit <= 0xdbff;
+    const isLow = codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
+    if (isHigh) {
+      const next = i + 1 < value.length ? value.charCodeAt(i + 1) : -1;
+      if (!(next >= 0xdc00 && next <= 0xdfff)) {
+        return false;
+      }
+      i += 1;
+    } else if (isLow) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export function stringValue(value: string): StringValue {
@@ -144,6 +212,7 @@ export function isSemanticValue(candidate: unknown): candidate is SemanticValue 
     readonly kind?: unknown;
     readonly value?: unknown;
     readonly values?: unknown;
+    readonly entries?: unknown;
     readonly typeId?: unknown;
     readonly fields?: unknown;
     readonly case?: unknown;
@@ -157,10 +226,21 @@ export function isSemanticValue(candidate: unknown): candidate is SemanticValue 
       return typeof value.value === "bigint";
     case "string":
       return typeof value.value === "string";
+    case "float64":
+      return typeof value.value === "number";
+    case "bytes":
+      return value.value instanceof Uint8Array;
     case "list":
       return (
         Array.isArray(value.values) &&
         value.values.every((entry) => isSemanticValue(entry))
+      );
+    case "map":
+      return (
+        value.entries instanceof Map &&
+        [...value.entries.keys()].every(
+          (key) => typeof key === "string" || typeof key === "bigint",
+        )
       );
     case "struct":
       return (

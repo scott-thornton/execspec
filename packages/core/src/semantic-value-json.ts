@@ -10,6 +10,9 @@ import type { ValueType } from "./types.js";
 import type { SemanticValue } from "./semantic-value.js";
 import {
   int64Value,
+  float64Value,
+  bytesValue,
+  mapValue,
   listValue,
   booleanValue,
   stringValue,
@@ -21,6 +24,7 @@ import {
   INT64_MIN,
 } from "./semantic-value.js";
 import { validateValue } from "./validate-value.js";
+import { canonicalFloat64Spelling, isCanonicalFloat64Spelling, parseFloat64Spelling } from "./float64.js";
 import type { TypeEnvironment, ValidationIssue } from "./validate-value.js";
 import type { TypeId } from "./ids.js";
 
@@ -39,10 +43,22 @@ export function semanticValueToJSON(value: SemanticValue): JSONValue {
       return value.value;
     case "int64":
       return { $i64: value.value.toString(10) };
+    case "float64":
+      return { $f64: canonicalFloat64Spelling(value.value) };
     case "string":
       return value.value;
+    case "bytes":
+      return { $b64: Buffer.from(value.value).toString("base64") };
     case "list":
       return value.values.map((element) => semanticValueToJSON(element));
+    case "map": {
+      const object: { [key: string]: JSONValue } = {};
+      for (const [key, entry] of value.entries) {
+        const encodedKey = typeof key === "bigint" ? key.toString(10) : key;
+        object[encodedKey] = semanticValueToJSON(entry);
+      }
+      return object;
+    }
     case "struct": {
       const object: { [key: string]: JSONValue } = {};
       for (const [name, field] of value.fields) {
@@ -144,6 +160,51 @@ function decode(
       }
       return int64Value(parsed);
     }
+    case "float64": {
+      if (!isPlainObject(json)) {
+        issue(issues, path, "invalidFloat64Wire", 'float64 must be {"$f64":"..."}');
+        return undefined;
+      }
+      const keys = Object.keys(json);
+      if (keys.length !== 1 || keys[0] !== "$f64") {
+        issue(issues, path, "invalidFloat64Wire", 'float64 must be exactly {"$f64":"..."}');
+        return undefined;
+      }
+      const spelling = json.$f64;
+      if (typeof spelling !== "string" || !isCanonicalFloat64Spelling(spelling)) {
+        issue(issues, path, "invalidFloat64Spelling", `non-canonical float64 spelling ${JSON.stringify(spelling)}`);
+        return undefined;
+      }
+      const parsed = parseFloat64Spelling(spelling);
+      if (parsed === undefined) {
+        issue(issues, path, "invalidFloat64Spelling", `unparseable float64 spelling ${JSON.stringify(spelling)}`);
+        return undefined;
+      }
+      return float64Value(parsed);
+    }
+    case "bytes": {
+      if (!isPlainObject(json)) {
+        issue(issues, path, "invalidBytesWire", 'bytes must be {"$b64":"..."}');
+        return undefined;
+      }
+      const keys = Object.keys(json);
+      if (keys.length !== 1 || keys[0] !== "$b64") {
+        issue(issues, path, "invalidBytesWire", 'bytes must be exactly {"$b64":"..."}');
+        return undefined;
+      }
+      const spelling = json.$b64;
+      if (typeof spelling !== "string" || !/^[A-Za-z0-9+/]*={0,2}$/.test(spelling)) {
+        issue(issues, path, "invalidBytesWire", "bytes must be standard base64");
+        return undefined;
+      }
+      const decoded = Buffer.from(spelling, "base64");
+      // Reject non-canonical spellings (trailing bits, whitespace, urlsafe alphabet).
+      if (Buffer.from(decoded).toString("base64") !== spelling) {
+        issue(issues, path, "invalidBytesWire", "bytes must be canonical padded base64");
+        return undefined;
+      }
+      return bytesValue(new Uint8Array(decoded));
+    }
     case "string":
       if (typeof json !== "string") {
         issue(issues, path, "expectedString", "expected a JSON string");
@@ -171,6 +232,30 @@ function decode(
         }
       });
       return ok ? listValue(values) : undefined;
+    }
+    case "map": {
+      if (!isPlainObject(json)) {
+        issue(issues, path, "expectedObject", "map must be a JSON object");
+        return undefined;
+      }
+      const entries = new Map<string | bigint, SemanticValue>();
+      let ok = true;
+      for (const [encodedKey, rawValue] of Object.entries(json)) {
+        const key = expectedType.key.kind === "int64"
+          ? decodeMapKeyInt64(encodedKey, issues, path)
+          : encodedKey;
+        if (key === undefined) {
+          ok = false;
+          continue;
+        }
+        const decodedValue = decode(rawValue, expectedType.value, environment, issues, `${path}[${JSON.stringify(encodedKey)}]`);
+        if (decodedValue === undefined) {
+          ok = false;
+        } else {
+          entries.set(key, decodedValue);
+        }
+      }
+      return ok ? mapValue(entries) : undefined;
     }
     case "ref": {
       const declaration = environment.declarations.get(expectedType.typeId as TypeId);
@@ -299,6 +384,23 @@ function decodeUnion(
     return undefined;
   }
   return unionValue(declaration.id, caseName, payload);
+}
+
+function decodeMapKeyInt64(
+  encodedKey: string,
+  issues: DecodeAccumulator,
+  path: string,
+): bigint | undefined {
+  if (!/^-?(0|[1-9][0-9]*)$/.test(encodedKey) || encodedKey === "-0") {
+    issue(issues, path, "invalidMapKey", `int64 map keys must be canonical decimal, got ${JSON.stringify(encodedKey)}`);
+    return undefined;
+  }
+  const parsed = BigInt(encodedKey);
+  if (parsed < INT64_MIN || parsed > INT64_MAX) {
+    issue(issues, path, "int64OutOfRange", "int64 map key outside signed 64-bit range");
+    return undefined;
+  }
+  return parsed;
 }
 
 function isPlainObject(json: JSONValue): json is { readonly [key: string]: JSONValue } {

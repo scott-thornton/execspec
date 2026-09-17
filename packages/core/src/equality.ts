@@ -6,6 +6,7 @@
  */
 
 import type { SemanticValue } from "./semantic-value.js";
+import { canonicalFloat64Spelling } from "./float64.js";
 
 export interface EqualityDifference {
   readonly path: string;
@@ -55,6 +56,26 @@ function diff(
       return expected.value === (actual as typeof expected).value
         ? []
         : difference(path, expected, actual);
+    case "float64": {
+      const actualFloat = actual as typeof expected;
+      // Portable equality is defined by the canonical spelling: -0 ≡ 0
+      // and NaN ≡ NaN (values, not IEEE arithmetic semantics).
+      return canonicalFloat64Spelling(expected.value) === canonicalFloat64Spelling(actualFloat.value)
+        ? []
+        : difference(path, expected, actual);
+    }
+    case "bytes": {
+      const actualBytes = actual as typeof expected;
+      if (expected.value.length !== actualBytes.value.length) {
+        return difference(path, expected, actual);
+      }
+      for (let index = 0; index < expected.value.length; index += 1) {
+        if (expected.value[index] !== actualBytes.value[index]) {
+          return difference(path, expected, actual);
+        }
+      }
+      return [];
+    }
     case "list": {
       const actualList = actual as typeof expected;
       if (expected.values.length !== actualList.values.length) {
@@ -67,6 +88,22 @@ function diff(
           differences.push(...diff(element, actualElement, `${path}[${index}]`));
         }
       });
+      return differences;
+    }
+    case "map": {
+      const actualMap = actual as typeof expected;
+      if (expected.entries.size !== actualMap.entries.size) {
+        return difference(path, expected, actual);
+      }
+      const differences: EqualityDifference[] = [];
+      for (const [key, entry] of expected.entries) {
+        const actualEntry = actualMap.entries.get(key);
+        if (actualEntry === undefined) {
+          return difference(path, expected, actual);
+        }
+        const encodedKey = typeof key === "bigint" ? key.toString(10) : key;
+        differences.push(...diff(entry, actualEntry, `${path}[${JSON.stringify(encodedKey)}]`));
+      }
       return differences;
     }
     case "enum": {

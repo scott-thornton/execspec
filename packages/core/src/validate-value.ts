@@ -52,6 +52,23 @@ function validate(
       return [];
     case "string":
       return value.kind === "string" ? [] : mismatch(path, "string", value.kind);
+    case "float64":
+      return value.kind === "float64" ? [] : mismatch(path, "float64", value.kind);
+    case "bytes":
+      return value.kind === "bytes" ? [] : mismatch(path, "bytes", value.kind);
+    case "map": {
+      if (value.kind !== "map") {
+        return mismatch(path, "map", value.kind);
+      }
+      const issues: ValidationIssue[] = [];
+      for (const [key, entry] of value.entries) {
+        const encodedKey = typeof key === "bigint" ? key.toString(10) : key;
+        issues.push(
+          ...validate(entry, expectedType.value, environment, `${path}[${JSON.stringify(encodedKey)}]`),
+        );
+      }
+      return issues;
+    }
     case "ref":
       return validateRef(value, expectedType.typeId, environment, path);
     case "list":

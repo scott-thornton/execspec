@@ -49,12 +49,18 @@ export function typeEquals(left: ValueType, right: ValueType): boolean {
     case "unit":
     case "boolean":
     case "int64":
+    case "float64":
     case "string":
+    case "bytes":
       return true;
     case "ref":
       return left.typeId === (right as { typeId: string }).typeId;
     case "list":
       return typeEquals(left.element, (right as { element: ValueType }).element);
+    case "map": {
+      const rightMap = right as { key: ValueType; value: ValueType };
+      return typeEquals(left.key, rightMap.key) && typeEquals(left.value, rightMap.value);
+    }
   }
 }
 
@@ -68,6 +74,10 @@ export function staticTypeOfValue(value: SemanticValue): ValueType {
       return { kind: "boolean" };
     case "int64":
       return { kind: "int64" };
+    case "float64":
+      return { kind: "float64" };
+    case "bytes":
+      return { kind: "bytes" };
     case "string":
       return { kind: "string" };
     case "list": {
@@ -80,6 +90,22 @@ export function staticTypeOfValue(value: SemanticValue): ValueType {
         throw new IRTypeError("cannot infer a static type for a heterogeneous list literal");
       }
       return { kind: "list", element: first };
+    }
+    case "map": {
+      if (value.entries.size === 0) {
+        throw new IRTypeError("cannot infer a static type for an empty map literal");
+      }
+      const keyKinds = new Set([...value.entries.keys()].map((key) => typeof key));
+      if (keyKinds.size !== 1) {
+        throw new IRTypeError("cannot infer a static type for a map literal with mixed key kinds");
+      }
+      const valueTypes = [...value.entries.values()].map((entry) => staticTypeOfValue(entry));
+      const first = valueTypes[0];
+      if (first === undefined || !valueTypes.every((type) => typeEquals(type, first))) {
+        throw new IRTypeError("cannot infer a static type for a heterogeneous map literal");
+      }
+      const keyType: ValueType = keyKinds.has("bigint") ? { kind: "int64" } : { kind: "string" };
+      return { kind: "map", key: keyType, value: first };
     }
     case "struct":
     case "enum":
@@ -300,6 +326,15 @@ function checkValueType(
   if (type.kind === "list") {
     return checkValueType(type.element, environment, scope);
   }
+  if (type.kind === "map") {
+    if (type.key.kind !== "string" && type.key.kind !== "int64") {
+      return [{ code: "types.mapKey", message: `map keys must be string or int64, got '${type.key.kind}'`, scope }];
+    }
+    return [
+      ...checkValueType(type.key, environment, scope),
+      ...checkValueType(type.value, environment, scope),
+    ];
+  }
   return [];
 }
 
@@ -309,6 +344,9 @@ function referencedTypeIds(type: ValueType): readonly string[] {
   }
   if (type.kind === "list") {
     return referencedTypeIds(type.element);
+  }
+  if (type.kind === "map") {
+    return [...referencedTypeIds(type.key), ...referencedTypeIds(type.value)];
   }
   return [];
 }
@@ -478,11 +516,15 @@ function describeType(type: ValueType): string {
     case "unit":
     case "boolean":
     case "int64":
+    case "float64":
     case "string":
+    case "bytes":
       return type.kind;
     case "ref":
       return type.typeId;
     case "list":
       return `list<${describeType(type.element)}>`;
+    case "map":
+      return `map<${describeType(type.key)}, ${describeType(type.value)}>`;
   }
 }

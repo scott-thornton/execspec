@@ -47,12 +47,18 @@ function valueTypeToJSON(type: ValueType): JSONValue {
       return { kind: "boolean" };
     case "int64":
       return { kind: "int64" };
+    case "float64":
+      return { kind: "float64" };
     case "string":
       return { kind: "string" };
+    case "bytes":
+      return { kind: "bytes" };
     case "ref":
       return { kind: "ref", typeId: type.typeId };
     case "list":
       return { kind: "list", element: valueTypeToJSON(type.element) };
+    case "map":
+      return { kind: "map", key: valueTypeToJSON(type.key), value: valueTypeToJSON(type.value) };
   }
 }
 
@@ -182,8 +188,12 @@ function decodeValueType(value: unknown, issues: ValidationIssue[], path: string
       return { kind: "boolean" };
     case "int64":
       return { kind: "int64" };
+    case "float64":
+      return { kind: "float64" };
     case "string":
       return { kind: "string" };
+    case "bytes":
+      return { kind: "bytes" };
     case "ref":
       if (typeof record.typeId === "string" && isTypeId(record.typeId)) {
         return { kind: "ref", typeId: record.typeId };
@@ -193,6 +203,18 @@ function decodeValueType(value: unknown, issues: ValidationIssue[], path: string
     case "list": {
       const element = decodeValueType(record.element, issues, `${path}.element`);
       return element === undefined ? undefined : { kind: "list", element };
+    }
+    case "map": {
+      const key = decodeValueType(record.key, issues, `${path}.key`);
+      const value = decodeValueType(record.value, issues, `${path}.value`);
+      if (key === undefined || value === undefined) {
+        return undefined;
+      }
+      if (key.kind !== "string" && key.kind !== "int64") {
+        issues.push({ path, code: "invalidMapKey", message: `${path}: map keys must be string or int64` });
+        return undefined;
+      }
+      return { kind: "map", key, value };
     }
     default:
       issues.push({ path, code: "invalidValueType", message: `${path}: unknown value type kind` });

@@ -11,7 +11,9 @@ export type PrimitiveType =
   | { readonly kind: "unit" }
   | { readonly kind: "boolean" }
   | { readonly kind: "int64" }
-  | { readonly kind: "string" };
+  | { readonly kind: "float64" }
+  | { readonly kind: "string" }
+  | { readonly kind: "bytes" };
 
 export interface TypeRef {
   readonly kind: "ref";
@@ -23,7 +25,15 @@ export interface ListType {
   readonly element: ValueType;
 }
 
-export type ValueType = PrimitiveType | TypeRef | ListType;
+/** Map with a restricted key type (string or int64) so wire keys stay
+ *  canonical and deterministic. */
+export interface MapType {
+  readonly kind: "map";
+  readonly key: ValueType;
+  readonly value: ValueType;
+}
+
+export type ValueType = PrimitiveType | TypeRef | ListType | MapType;
 
 export interface StructField {
   readonly name: string;
@@ -71,12 +81,28 @@ export function int64Type(): PrimitiveType {
   return { kind: "int64" };
 }
 
+export function float64Type(): PrimitiveType {
+  return { kind: "float64" };
+}
+
+export function bytesType(): PrimitiveType {
+  return { kind: "bytes" };
+}
+
 export function stringType(): PrimitiveType {
   return { kind: "string" };
 }
 
 export function listType(element: ValueType): ListType {
   return { kind: "list", element };
+}
+
+/** Map keys are restricted to `string` and `int64` (docs/semantic-model.md). */
+export function mapType(key: ValueType, value: ValueType): MapType {
+  if (key.kind !== "string" && key.kind !== "int64") {
+    throw new Error(`map keys must be string or int64, got '${key.kind}'`);
+  }
+  return { kind: "map", key, value };
 }
 
 export function refType(typeId: string): TypeRef {
@@ -139,7 +165,7 @@ export function unionDeclaration(
   return { kind: "union", id: parsedId, cases: [...cases] };
 }
 
-const PRIMITIVE_KINDS = new Set(["unit", "boolean", "int64", "string"]);
+const PRIMITIVE_KINDS = new Set(["unit", "boolean", "int64", "float64", "string", "bytes"]);
 
 export function isPrimitiveType(value: unknown): value is PrimitiveType {
   if (typeof value !== "object" || value === null) {
@@ -169,8 +195,20 @@ export function isListType(value: unknown): value is ListType {
   return candidate.kind === "list" && isValueType(candidate.element);
 }
 
+export function isMapType(value: unknown): value is MapType {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as { readonly kind?: unknown; readonly key?: unknown; readonly value?: unknown };
+  if (candidate.kind !== "map" || !isValueType(candidate.key) || !isValueType(candidate.value)) {
+    return false;
+  }
+  const keyKind = (candidate.key as { readonly kind: string }).kind;
+  return keyKind === "string" || keyKind === "int64";
+}
+
 export function isValueType(value: unknown): value is ValueType {
-  return isPrimitiveType(value) || isTypeRef(value) || isListType(value);
+  return isPrimitiveType(value) || isTypeRef(value) || isListType(value) || isMapType(value);
 }
 
 export function isStructField(value: unknown): value is StructField {
