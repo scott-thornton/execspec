@@ -39,9 +39,9 @@ execspec generate typescript --ir <file.execspec.json> --out <directory>
 | `--ir` | yes | Path to a canonical IR document produced by `compile`. It is strictly parsed and validated before generation. |
 | `--out` | yes | Target directory. It is replaced atomically: files are generated to a staging directory first, so a failed run never leaves a half-generated tree. |
 
-Both commands emit exactly five files: `ExecSpecTypes`,
+Both commands emit exactly four files: `ExecSpecTypes`,
 `ExecSpecImplementation`, `ExecSpecCodecs`, and `ExecSpecDispatcher` (in
-the target's language), plus an `AGENTS.md` with agent guidance. The
+the target's language). Every file carries a "do not edit" header. The
 specification digest is recomputed from the IR and embedded in the
 dispatcher as a constant. Generation is deterministic: identical IR
 produces byte-identical output.

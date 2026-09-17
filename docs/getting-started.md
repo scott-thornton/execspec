@@ -108,9 +108,15 @@ node packages/cli/dist/index.js generate typescript \
 ```
 
 Each target directory contains four source files (types, implementation
-protocol, wire codecs, dispatcher) plus an `AGENTS.md` with guidance
-for coding agents. The generated sources are deterministic: committing
-them and regenerating must produce an empty `git diff`.
+protocol, wire codecs, dispatcher), each headed with a do-not-edit
+marker. The generated sources are deterministic: committing them and
+regenerating must produce an empty `git diff`.
+
+If you use coding agents in the consuming repository, add one short
+note to your own root `AGENTS.md` (or equivalent) naming the generated
+directories and the three commands above. Guidance belongs at your
+repo root, written once; the generator deliberately does not spray
+instruction files into your tree.
 
 ## 3. Implement the generated contract
 

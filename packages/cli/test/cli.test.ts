@@ -111,7 +111,6 @@ test("generate swift writes the four files and replaces the directory atomically
   const code = await runCli(["generate", "swift", "--ir", ir, "--out", out], io.io);
   assert.equal(code, 0);
   assert.deepEqual((await readdir(out)).sort(), [
-    "AGENTS.md",
     "ExecSpecCodecs.swift",
     "ExecSpecDispatcher.swift",
     "ExecSpecImplementation.swift",
