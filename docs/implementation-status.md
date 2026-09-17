@@ -24,3 +24,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 6: value validation against semantic types (validate-value.ts): typed paths, nominal identity, optional/unknown fields, union payload rules, int64 range. Green.
 (amend: final green 27/27)
 - Task 7: portable semantic equality (equality.ts): diff paths, nominal identity, order rules. Green (35 tests).
+- Task 8: Semantic IR v1 types (ir.ts) per docs/ir-v1.md. Green (38 tests).
