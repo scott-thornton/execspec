@@ -17,8 +17,14 @@ ADR (v0.1, Swift runtime): the plan suggested Foundation's JSON
 facilities for parsing, but `JSONSerialization` cannot preserve exact
 numeric spellings or reject duplicate object keys — both required by
 this protocol. The Swift runtime therefore ships a strict hand-written
-JSON parser/serializer with those guarantees; Foundation remains in use
-for process I/O. Observable wire behavior is unchanged (and stricter).
+JSON parser/serializer with those guarantees. Observable wire behavior
+is unchanged (and stricter).
+
+ADR (v0.1, Swift runtime I/O): host transport I/O uses POSIX
+`read`/`write` on the stdin/stdout descriptors. Foundation's
+`NSFileHandle` read path stalls when the harness spawns the host with
+socketpair stdio (Node ≥ 25 does this), while POSIX calls behave
+identically on pipes and sockets; the wire format is unaffected.
 
 ## 2. Process lifecycle
 

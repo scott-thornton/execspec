@@ -4,6 +4,9 @@ import PackageDescription
 let package = Package(
     name: "ExecSpecRuntime",
     platforms: [.macOS(.v13)],
+    products: [
+        .library(name: "ExecSpecRuntime", targets: ["ExecSpecRuntime"]),
+    ],
     targets: [
         .target(name: "ExecSpecRuntime"),
         .testTarget(name: "ExecSpecRuntimeTests", dependencies: ["ExecSpecRuntime"]),

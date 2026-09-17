@@ -2,6 +2,11 @@
 //
 // One UTF-8 JSON message per line, 16 MiB line limit, invalid UTF-8 and
 // partial final lines are protocol failures, stdout is protocol-only.
+//
+// ADR (docs/protocol-v1.md): I/O uses POSIX read/write on the file
+// descriptors. Foundation's NSFileHandle read path stalls on the
+// socketpair stdio that some harness runtimes (Node ≥ 25) use for child
+// processes; POSIX calls behave identically on pipes and sockets.
 
 import Foundation
 
@@ -9,12 +14,42 @@ public enum NDJSONError: Error, Sendable, Equatable {
     case lineTooLong(Int)
     case invalidUTF8
     case partialLineAtEOF
+    case readFailed(String)
     case writeFailed(String)
 }
 
 public let execSpecMaxLineBytes = 16 * 1024 * 1024
 
-/// Byte-level line assembler, testable without file handles. Splits a
+func posixReadChunk(fd: Int32, max: Int) throws -> [UInt8]? {
+    var buffer = [UInt8](repeating: 0, count: max)
+    let bytesRead = buffer.withUnsafeMutableBytes { pointer -> Int in
+        guard let base = pointer.baseAddress else { return 0 }
+        return Darwin.read(fd, base, max)
+    }
+    if bytesRead < 0 {
+        throw NDJSONError.readFailed(String(cString: Darwin.strerror(Darwin.errno)))
+    }
+    if bytesRead == 0 {
+        return nil
+    }
+    return Array(buffer[0..<bytesRead])
+}
+
+func posixWriteChunk(fd: Int32, _ bytes: [UInt8]) throws {
+    var offset = 0
+    while offset < bytes.count {
+        let written = bytes.withUnsafeBytes { pointer -> Int in
+            guard let base = pointer.baseAddress else { return 0 }
+            return Darwin.write(fd, base.advanced(by: offset), bytes.count - offset)
+        }
+        if written <= 0 {
+            throw NDJSONError.writeFailed(String(cString: Darwin.strerror(Darwin.errno)))
+        }
+        offset += written
+    }
+}
+
+/// Byte-level line assembler, testable without descriptors. Splits a
 /// chunk stream on LF, enforces the line limit, and strictly decodes
 /// UTF-8 per line.
 public struct LineAssembler {
@@ -58,17 +93,17 @@ public struct LineAssembler {
     }
 }
 
-/// A connection over a pair of file handles: blocking reads, one
+/// A connection over a pair of file descriptors: blocking reads, one
 /// response flushed per write.
 public struct NDJSONConnection {
-    private let input: FileHandle
-    private let output: FileHandle
+    private let inputFD: Int32
+    private let outputFD: Int32
     private var assembler = LineAssembler()
     private var pending: [String] = []
 
     public init(input: FileHandle, output: FileHandle) {
-        self.input = input
-        self.output = output
+        self.inputFD = input.fileDescriptor
+        self.outputFD = output.fileDescriptor
     }
 
     /// Reads the next raw line (transport errors only); nil at clean end
@@ -79,7 +114,7 @@ public struct NDJSONConnection {
             if !pending.isEmpty {
                 return pending.removeFirst()
             }
-            guard let chunk = try readChunk() else {
+            guard let chunk = try posixReadChunk(fd: inputFD, max: 65536) else {
                 try assembler.finish()
                 return nil
             }
@@ -89,29 +124,16 @@ public struct NDJSONConnection {
 
     /// Reads the next message; nil at clean end of stream.
     public mutating func read() throws -> JSONValue? {
-        while true {
-            guard let line = try readLine() else {
-                return nil
-            }
-            return try JSONParser.parse(line)
-        }
-    }
-
-    private mutating func readChunk() throws -> [UInt8]? {
-        guard let data = try input.read(upToCount: 65536), !data.isEmpty else {
+        guard let line = try readLine() else {
             return nil
         }
-        return [UInt8](data)
+        return try JSONParser.parse(line)
     }
 
     /// Writes exactly one JSON object plus LF, then flushes.
     public mutating func write(_ value: JSONValue) throws {
-        var text = serializeJSON(value)
-        text += "\n"
-        do {
-            try output.write(contentsOf: Data(text.utf8))
-        } catch {
-            throw NDJSONError.writeFailed(String(describing: error))
-        }
+        var bytes = Array(serializeJSON(value).utf8)
+        bytes.append(0x0A)
+        try posixWriteChunk(fd: outputFD, bytes)
     }
 }

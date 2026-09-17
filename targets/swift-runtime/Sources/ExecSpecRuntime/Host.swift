@@ -36,7 +36,12 @@ public protocol ExecSpecDispatcher: Sendable {
 
 enum ExecSpecStderr {
     static func write(_ text: String) {
-        try? FileHandle.standardError.write(contentsOf: Data((text + "\n").utf8))
+        var bytes = Array((text + "\n").utf8)
+        bytes.withUnsafeMutableBytes { pointer in
+            _ = pointer.baseAddress.map { base in
+                Darwin.write(FileHandle.standardError.fileDescriptor, base, pointer.count)
+            }
+        }
     }
 }
 
@@ -53,6 +58,7 @@ func describeError(_ error: Error) -> String {
         case .lineTooLong(let bytes): return "line exceeds 16 MiB (\(bytes) bytes)"
         case .invalidUTF8: return "invalid UTF-8"
         case .partialLineAtEOF: return "partial NDJSON message at EOF"
+        case .readFailed(let detail): return "read failed: \(detail)"
         case .writeFailed(let detail): return "write failed: \(detail)"
         }
     }
