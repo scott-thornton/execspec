@@ -172,6 +172,34 @@ test("hosts that ignore stdin close are killed and reported", async () => {
   );
 });
 
+test("protocol robustness: id mismatch, invalid output, version mismatch", async () => {
+  const document = kvDocument();
+  const scenario = document.semantic.scenarios[0];
+  if (scenario === undefined) {
+    throw new Error("fixture scenario missing");
+  }
+  const idMismatch = await runScenario(document, scenario, {
+    hostCommand: fixtureHost("id-mismatch-host.mjs"),
+    timeoutMs: 5000,
+  });
+  assert.equal(idMismatch.failure?.kind, "ProtocolFailure");
+  assert.match(idMismatch.failure?.message ?? "", /id mismatch/);
+
+  const invalidOutput = await runScenario(document, scenario, {
+    hostCommand: fixtureHost("invalid-output-host.mjs"),
+    timeoutMs: 5000,
+  });
+  assert.equal(invalidOutput.failure?.kind, "InvalidOutputFailure");
+  assert.match(invalidOutput.failure?.message ?? "", /invalidUnionCase/);
+
+  const versionMismatch = await runScenario(document, scenario, {
+    hostCommand: fixtureHost("version-mismatch-host.mjs"),
+    timeoutMs: 5000,
+  });
+  assert.equal(versionMismatch.failure?.kind, "HandshakeFailure");
+  assert.match(versionMismatch.failure?.message ?? "", /protocol version mismatch/);
+});
+
 test("spawn failures are typed", async () => {
   await assert.rejects(
     () => spawnHost({ executable: "/nonexistent/execspec-host", args: [] }),
