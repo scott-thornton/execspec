@@ -39,4 +39,14 @@ public actor KVStore: KVSpecificationImplementation {
     public func kvEchoRevision(_ input: RevisionRequest) async throws -> RevisionResult {
         RevisionResult(revision: input.revision)
     }
+
+
+    public func kvEchoTypes(_ input: TypesRequest) async throws -> TypesResult {
+        TypesResult(
+            blob: input.blob,
+            counts: input.counts,
+            labels: input.labels,
+            weight: input.weight
+        )
+    }
 }

@@ -7,6 +7,9 @@
 import {
   booleanType,
   int64Type,
+  float64Type,
+  bytesType,
+  mapType,
   listType,
   refType,
   stringType,
@@ -18,6 +21,7 @@ import {
 import type {
   EnumDeclaration,
   ListType,
+  MapType,
   PrimitiveType,
   StructDeclaration,
   TypeDeclaration,
@@ -39,12 +43,25 @@ export function int64(): PrimitiveType {
   return int64Type();
 }
 
+export function float64(): PrimitiveType {
+  return float64Type();
+}
+
+export function bytes(): PrimitiveType {
+  return bytesType();
+}
+
 export function string(): PrimitiveType {
   return stringType();
 }
 
 export function list(element: ValueType): ListType {
   return listType(element);
+}
+
+/** Map keys are restricted to string and int64. */
+export function map(key: ValueType, value: ValueType): MapType {
+  return mapType(key, value);
 }
 
 export function ref(typeId: string): TypeRef {

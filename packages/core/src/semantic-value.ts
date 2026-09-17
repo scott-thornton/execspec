@@ -176,15 +176,77 @@ export function listValue(values: readonly SemanticValue[]): ListValue {
   return { kind: "list", values: [...values] };
 }
 
+/** Authoring sugar: plain runtime values convert unambiguously —
+ *  string → string, bigint → int64, number → float64, boolean → boolean,
+ *  Uint8Array → bytes, arrays → list. Plain objects are rejected:
+ *  nominal structs/unions/maps need explicit constructors. */
+export type PlainLeaf =
+  | string
+  | bigint
+  | number
+  | boolean
+  | Uint8Array
+  | readonly PlainValue[]
+  | SemanticValue;
+
+export type PlainValue = PlainLeaf;
+
+export function plainSemanticValue(value: PlainValue): SemanticValue {
+  if (typeof value === "string") {
+    return stringValue(value);
+  }
+  if (typeof value === "bigint") {
+    return int64Value(value);
+  }
+  if (typeof value === "number") {
+    return float64Value(value);
+  }
+  if (typeof value === "boolean") {
+    return booleanValue(value);
+  }
+  if (value instanceof Uint8Array) {
+    return bytesValue(value);
+  }
+  if (Array.isArray(value)) {
+    return listValue(value.map((element) => plainSemanticValue(element)));
+  }
+  if (typeof value === "object" && value !== null && "kind" in value) {
+    return value;
+  }
+  throw new Error(
+    "plain values must be string, bigint, number, boolean, Uint8Array, array, or SemanticValue; build structs/unions/maps explicitly",
+  );
+}
+
+function plainFieldsToMap(
+  fields: ReadonlyMap<string, SemanticValue> | Record<string, PlainValue | undefined>,
+): Map<string, SemanticValue> {
+  const result = new Map<string, SemanticValue>();
+  if (fields instanceof Map) {
+    for (const [name, value] of fields) {
+      result.set(name, value);
+    }
+    return result;
+  }
+  for (const [name, value] of Object.entries(fields)) {
+    if (value === undefined) {
+      continue; // absent optional field
+    }
+    result.set(name, plainSemanticValue(value));
+  }
+  return result;
+}
+
 export function structValue(
   typeId: string,
-  fields: ReadonlyMap<string, SemanticValue>,
+  fields: ReadonlyMap<string, SemanticValue> | Record<string, PlainValue | undefined>,
 ): StructValue {
   const parsedId = parseTypeId(typeId);
-  for (const name of fields.keys()) {
+  const map = plainFieldsToMap(fields);
+  for (const name of map.keys()) {
     parseMemberName(name);
   }
-  return { kind: "struct", typeId: parsedId, fields: new Map(fields) };
+  return { kind: "struct", typeId: parsedId, fields: map };
 }
 
 export function enumValue(typeId: string, caseName: string): EnumValue {
@@ -194,14 +256,17 @@ export function enumValue(typeId: string, caseName: string): EnumValue {
 export function unionValue(
   typeId: string,
   caseName: string,
-  payload?: SemanticValue,
+  payload?: SemanticValue | PlainValue,
 ): UnionValue {
   const parsedId = parseTypeId(typeId);
   const parsedCase = parseMemberName(caseName);
   if (payload === undefined) {
     return { kind: "union", typeId: parsedId, case: parsedCase };
   }
-  return { kind: "union", typeId: parsedId, case: parsedCase, value: payload };
+  const value = typeof payload === "object" && payload !== null && "kind" in payload
+    ? (payload as SemanticValue)
+    : plainSemanticValue(payload);
+  return { kind: "union", typeId: parsedId, case: parsedCase, value };
 }
 
 export function isSemanticValue(candidate: unknown): candidate is SemanticValue {

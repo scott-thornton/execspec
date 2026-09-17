@@ -8,7 +8,7 @@ public struct KVExecSpecDispatcher<Implementation: KVSpecificationImplementation
 
     public init(implementation: Implementation) {
         self.implementation = implementation
-        self.specificationDigest = "58c6cde32ed15a3f3c81c9c089655c653573122a2b46bd2ff4d6dba25d6cda6e"
+        self.specificationDigest = "0fe54e06c369c8990119c5a791af5eecb91a7d86c7e3ff2afa1238ee3bd45e0e"
     }
 
     public func dispatch(operation: String, input: JSONValue) async throws -> JSONValue {
@@ -21,6 +21,10 @@ public struct KVExecSpecDispatcher<Implementation: KVSpecificationImplementation
             let requestKvEchoRevision = try decodeRevisionRequest(input)
             let output = try await implementation.kvEchoRevision(requestKvEchoRevision)
             return try encodeRevisionResult(output)
+        case "kv.echo-types":
+            let requestKvEchoTypes = try decodeTypesRequest(input)
+            let output = try await implementation.kvEchoTypes(requestKvEchoTypes)
+            return try encodeTypesResult(output)
         case "kv.get":
             let requestKvGet = try decodeGetRequest(input)
             let output = try await implementation.kvGet(requestKvGet)

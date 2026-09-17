@@ -3,6 +3,7 @@
 public protocol KVSpecificationImplementation: Sendable {
     func kvDelete(_ input: DeleteRequest) async throws -> ExecSpecUnit
     func kvEchoRevision(_ input: RevisionRequest) async throws -> RevisionResult
+    func kvEchoTypes(_ input: TypesRequest) async throws -> TypesResult
     func kvGet(_ input: GetRequest) async throws -> GetResult
     func kvList(_ input: ExecSpecUnit) async throws -> KeyList
     func kvPut(_ input: PutRequest) async throws -> ExecSpecUnit

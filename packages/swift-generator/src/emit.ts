@@ -6,7 +6,7 @@
 import { validateSemanticIR } from "@execspec/core";
 import { compareByCodePoint } from "@execspec/core";
 import type { OperationIR, SemanticIRDocument, TypeDeclaration } from "@execspec/core";
-import { emitSwiftTypes } from "./emit-types.js";
+import { emitSwiftTypes, usesBytes } from "./emit-types.js";
 import { emitSwiftImplementationProtocol } from "./emit-protocol.js";
 import { emitSwiftCodecs } from "./emit-codecs.js";
 import { emitSwiftDispatcher } from "./emit-dispatch.js";
@@ -50,7 +50,9 @@ export function generateSwift(
   return [
     {
       relativePath: "ExecSpecTypes.swift",
-      contents: withHeader(emitSwiftTypes(types)),
+      contents: withHeader(
+        emitSwiftTypes(types, usesBytes(types) ? ["import Foundation"] : []),
+      ),
     },
     {
       relativePath: "ExecSpecImplementation.swift",
@@ -58,7 +60,10 @@ export function generateSwift(
     },
     {
       relativePath: "ExecSpecCodecs.swift",
-      contents: withHeader(emitSwiftCodecs(ir), ["import ExecSpecRuntime"]),
+      contents: withHeader(
+        emitSwiftCodecs(ir),
+        usesBytes(types) ? ["import ExecSpecRuntime", "import Foundation"] : ["import ExecSpecRuntime"],
+      ),
     },
     {
       relativePath: "ExecSpecDispatcher.swift",

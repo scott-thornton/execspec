@@ -17,12 +17,18 @@ function structuralComponent(type: ValueType): string {
       return "boolean";
     case "int64":
       return "int64";
+    case "float64":
+      return "float64";
     case "string":
       return "string";
+    case "bytes":
+      return "bytes";
     case "ref":
       return type.typeId;
     case "list":
       return `list_of_${structuralComponent(type.element)}`;
+    case "map":
+      return `map_of_${structuralComponent(type.key)}_to_${structuralComponent(type.value)}`;
   }
 }
 
@@ -33,6 +39,10 @@ function registerStructuralHelpers(type: ValueType, registered: Set<string>): vo
   registered.add(structuralComponent(type));
   if (type.kind === "list") {
     registerStructuralHelpers(type.element, registered);
+  }
+  if (type.kind === "map") {
+    registerStructuralHelpers(type.key, registered);
+    registerStructuralHelpers(type.value, registered);
   }
 }
 
@@ -49,11 +59,21 @@ export function encoderExpression(type: ValueType): string {
 }
 
 function rebuildType(component: string): ValueType {
-  if (component === "unit" || component === "boolean" || component === "int64" || component === "string") {
+  if (
+    component === "unit" || component === "boolean" || component === "int64"
+    || component === "float64" || component === "string" || component === "bytes"
+  ) {
     return { kind: component };
   }
   if (component.startsWith("list_of_")) {
     return { kind: "list", element: rebuildType(component.slice("list_of_".length)) };
+  }
+  if (component.startsWith("map_of_")) {
+    const rest = component.slice("map_of_".length);
+    // Keys are only "string" or "int64", so the split is unambiguous.
+    const key = rest.startsWith("string_") ? "string" : "int64";
+    const value = rest.slice(key.length + "_to_".length);
+    return { kind: "map", key: rebuildType(key), value: rebuildType(value) };
   }
   return { kind: "ref", typeId: component };
 }
@@ -66,12 +86,18 @@ function labelFor(type: ValueType): string {
       return "boolean";
     case "int64":
       return "int64";
+    case "float64":
+      return "float64";
     case "string":
       return "string";
+    case "bytes":
+      return "bytes";
     case "ref":
       return type.typeId;
     case "list":
       return `list<${labelFor(type.element)}>`;
+    case "map":
+      return `map<${labelFor(type.key)}, ${labelFor(type.value)}>`;
   }
 }
 
@@ -163,9 +189,80 @@ func encodeValue_int64(_ value: Int64) throws -> JSONValue {
 func encodeValue_string(_ value: String) throws -> JSONValue {
     .string(value)
 }`;
+    case "float64":
+      return `func decodeValue_float64(_ value: JSONValue) throws -> Double {
+    guard case .object(let object) = value, object.count == 1,
+          case .string(let spelling)? = object["$f64"] else {
+        throw ExecSpecHostFailure.invalidRequest("float64: expected {\\\"$f64\\\":\\\"...\\\"}")
+    }
+    guard let parsed = ExecSpecFloat64.parse(spelling),
+          ExecSpecFloat64.spelling(parsed) == spelling else {
+        throw ExecSpecHostFailure.invalidRequest("float64: invalid spelling '\(spelling)'")
+    }
+    return parsed
+}
+
+func encodeValue_float64(_ value: Double) throws -> JSONValue {
+    .object(["$f64": .string(ExecSpecFloat64.spelling(value))])
+}`;
+    case "bytes":
+      return `func decodeValue_bytes(_ value: JSONValue) throws -> Data {
+    guard case .object(let object) = value, object.count == 1,
+          case .string(let spelling)? = object["$b64"] else {
+        throw ExecSpecHostFailure.invalidRequest("bytes: expected {\\\"$b64\\\":\\\"...\\\"}")
+    }
+    guard let data = Data(base64Encoded: spelling),
+          data.base64EncodedString() == spelling else {
+        throw ExecSpecHostFailure.invalidRequest("bytes: invalid base64 '\(spelling)'")
+    }
+    return data
+}
+
+func encodeValue_bytes(_ value: Data) throws -> JSONValue {
+    .object(["$b64": .string(value.base64EncodedString())])
+}`;
     default:
+      if (component.startsWith("map_of_")) {
+        return mapHelperSource(component);
+      }
       return listHelperSource(component);
   }
+}
+
+function mapHelperSource(component: string): string {
+  const map = rebuildType(component) as { kind: "map"; key: ValueType; value: ValueType };
+  const swiftType = swiftValueTypeName(map);
+  const label = `map<${labelFor(map.key)}, ${labelFor(map.value)}>`;
+  const decodeBody = map.key.kind === "string"
+    ? `    for entry in object {
+        result[entry.key] = try ${decoderExpression(map.value)}(entry.value)
+    }`
+    : `    for entry in object {
+        guard ExecSpecWire.isCanonicalInt64Spelling(entry.key),
+              let key = Int64(entry.key) else {
+            throw ExecSpecHostFailure.invalidRequest("${label}: invalid key '\\(entry.key)'")
+        }
+        result[key] = try ${decoderExpression(map.value)}(entry.value)
+    }`;
+  const encodeBody = map.key.kind === "string"
+    ? `        object[entry.key] = try ${encoderExpression(map.value)}(entry.value)`
+    : `        object[String(entry.key)] = try ${encoderExpression(map.value)}(entry.value)`;
+  return `func decodeValue_${component}(_ value: JSONValue) throws -> ${swiftType} {
+    guard case .object(let object) = value else {
+        throw ExecSpecHostFailure.invalidRequest("${label}: expected a JSON object")
+    }
+    var result: ${swiftType} = [:]
+${decodeBody}
+    return result
+}
+
+func encodeValue_${component}(_ value: ${swiftType}) throws -> JSONValue {
+    var object: [String: JSONValue] = [:]
+    for entry in value {
+${encodeBody}
+    }
+    return .object(object)
+}`;
 }
 
 function listHelperSource(component: string): string {

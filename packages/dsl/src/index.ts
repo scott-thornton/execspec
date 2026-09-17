@@ -7,8 +7,11 @@ export {
   unit,
   boolean,
   int64,
+  float64,
+  bytes,
   string,
   list,
+  map,
   ref,
   optional,
   struct,
@@ -22,6 +25,7 @@ export type { OperationSpec } from "./operation-builder.js";
 
 export { scenario } from "./scenario-builder.js";
 export type { ScenarioBuilder } from "./scenario-builder.js";
+export { outline } from "./outline.js";
 
 export { literal, binding, field } from "./expressions.js";
 
@@ -31,6 +35,9 @@ export {
   unitValue,
   booleanValue,
   int64Value,
+  float64Value,
+  bytesValue,
+  mapValue,
   stringValue,
   listValue,
   structValue,

@@ -21,7 +21,6 @@ export function scenario(id: string, description: string): ScenarioBuilder {
   }
 
   const steps: ScenarioStepIR[] = [];
-
   return {
     call(bindingName: string, operationId: string, input: ValueExpressionIR): ScenarioBuilder {
       parseMemberName(bindingName);

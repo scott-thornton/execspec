@@ -5,14 +5,21 @@
  * proves full-width signed integers survive the whole pipeline.
  */
 
+import type { SemanticValue } from "@execspec/core";
 import {
+  float64Value,
+  bytesValue,
+  mapValue,
   specification,
   struct,
   union,
   string,
   int64,
+  float64,
+  bytes,
   unit,
   list,
+  map,
   ref,
   operation,
   scenario,
@@ -37,6 +44,18 @@ spec.type(union("GetResult", { found: string(), missing: unit() }));
 spec.type(struct("KeyList", { keys: list(string()) }));
 spec.type(struct("RevisionRequest", { revision: int64() }));
 spec.type(struct("RevisionResult", { revision: int64() }));
+spec.type(struct("TypesRequest", {
+  weight: float64(),
+  blob: bytes(),
+  counts: map(string(), int64()),
+  labels: map(int64(), string()),
+}));
+spec.type(struct("TypesResult", {
+  weight: float64(),
+  blob: bytes(),
+  counts: map(string(), int64()),
+  labels: map(int64(), string()),
+}));
 
 // --- Operations ------------------------------------------------------------
 
@@ -47,6 +66,10 @@ spec.operation(operation("kv.list", { input: unit(), output: ref("KeyList") }));
 spec.operation(operation("kv.echo-revision", {
   input: ref("RevisionRequest"),
   output: ref("RevisionResult"),
+}));
+spec.operation(operation("kv.echo-types", {
+  input: ref("TypesRequest"),
+  output: ref("TypesResult"),
 }));
 
 // --- Scenarios ---------------------------------------------------------------
@@ -178,6 +201,40 @@ spec.scenario(
       literal(structValue("RevisionResult", new Map([
         ["revision", int64Value(-9223372036854775808n)],
       ]))),
+    )
+    .build(),
+);
+
+// The extended-kinds wire proof: float64 (including NaN), bytes, and
+// both map key types survive Swift and back, bit-exact.
+spec.scenario(
+  scenario("kv.types-wire-proof", "float64, bytes, and maps survive the pipeline")
+    .call("echo", "kv.echo-types", literal(structValue("TypesRequest", {
+      weight: float64Value(Number.NaN),
+      blob: bytesValue(new Uint8Array([0, 127, 128, 255])),
+      counts: mapValue(new Map<string | bigint, SemanticValue>([
+        ["extreme", int64Value(-9223372036854775808n)],
+        ["zero", int64Value(0n)],
+      ])),
+      labels: mapValue(new Map<string | bigint, SemanticValue>([
+        [9223372036854775807n, stringValue("max")],
+        [-1n, stringValue("min")],
+      ])),
+    })))
+    .expectEqual(
+      binding("echo"),
+      literal(structValue("TypesResult", {
+        weight: float64Value(Number.NaN),
+        blob: bytesValue(new Uint8Array([0, 127, 128, 255])),
+        counts: mapValue(new Map<string | bigint, SemanticValue>([
+          ["extreme", int64Value(-9223372036854775808n)],
+          ["zero", int64Value(0n)],
+        ])),
+        labels: mapValue(new Map<string | bigint, SemanticValue>([
+          [9223372036854775807n, stringValue("max")],
+          [-1n, stringValue("min")],
+        ])),
+      })),
     )
     .build(),
 );

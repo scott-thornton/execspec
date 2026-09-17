@@ -24,12 +24,18 @@ export function swiftValueTypeName(type: ValueType): string {
       return "Bool";
     case "int64":
       return "Int64";
+    case "float64":
+      return "Double";
     case "string":
       return "String";
+    case "bytes":
+      return "Data";
     case "ref":
       return swiftTypeName(type.typeId);
     case "list":
       return `[${swiftValueTypeName(type.element)}]`;
+    case "map":
+      return `[${swiftValueTypeName(type.key)}: ${swiftValueTypeName(type.value)}]`;
   }
 }
 
@@ -55,12 +61,42 @@ function assertDeclarationSafe(declaration: TypeDeclaration): void {
   }
 }
 
-export function emitSwiftTypes(types: readonly TypeDeclaration[]): string {
+export function usesBytes(types: readonly TypeDeclaration[]): boolean {
+  return types.some((declaration) => declarationUses(declaration, (type) => type.kind === "bytes"));
+}
+
+function declarationUses(declaration: TypeDeclaration, predicate: (type: ValueType) => boolean): boolean {
+  if (declaration.kind === "struct") {
+    return declaration.fields.some((field) => valueUses(field.type, predicate));
+  }
+  if (declaration.kind === "union") {
+    return declaration.cases.some((unionCase) => valueUses(unionCase.payload, predicate));
+  }
+  return false;
+}
+
+function valueUses(type: ValueType, predicate: (type: ValueType) => boolean): boolean {
+  if (predicate(type)) {
+    return true;
+  }
+  if (type.kind === "list") {
+    return valueUses(type.element, predicate);
+  }
+  if (type.kind === "map") {
+    return valueUses(type.key, predicate) || valueUses(type.value, predicate);
+  }
+  return false;
+}
+
+export function emitSwiftTypes(types: readonly TypeDeclaration[], imports: readonly string[] = []): string {
   for (const declaration of types) {
     assertDeclarationSafe(declaration);
   }
 
   const chunks: string[] = [];
+  if (imports.length > 0) {
+    chunks.push(`${imports.join("\n")}\n`);
+  }
   chunks.push(`public struct ExecSpecUnit: Sendable {
     public init() {}
 }
