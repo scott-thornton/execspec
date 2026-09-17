@@ -17,5 +17,13 @@
   },
   "dependencies": {
     "@execspec/compiler": "*"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scott-thornton/execspec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scott-thornton/execspec/issues"
+  },
+  "homepage": "https://github.com/scott-thornton/execspec#readme"
 }

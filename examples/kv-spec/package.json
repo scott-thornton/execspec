@@ -12,5 +12,12 @@
   },
   "dependencies": {
     "@execspec/dsl": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scott-thornton/execspec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scott-thornton/execspec/issues"
   }
 }

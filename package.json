@@ -26,5 +26,13 @@
     "@types/node": "^22.20.3",
     "typescript": "^7.0.2"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scott-thornton/execspec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scott-thornton/execspec/issues"
+  },
+  "homepage": "https://github.com/scott-thornton/execspec#readme"
 }
