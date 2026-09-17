@@ -28,6 +28,14 @@ $CLI test --ir build/kv.execspec.json --host examples/kv-swift/.build/debug/KVHo
 echo "== conformance: TypeScript implementation must pass the same spec =="
 $CLI test --ir build/kv.execspec.json --host examples/kv-ts/host.mjs
 
+echo "== ordering example: one realistic spec, two language targets =="
+$CLI compile --module examples/orders-spec/dist/spec.js --out build/orders.execspec.json
+$CLI generate swift --ir build/orders.execspec.json --out examples/orders-swift/Sources/OrdersGenerated >/dev/null
+$CLI generate typescript --ir build/orders.execspec.json --out examples/orders-ts/src/OrdersGenerated >/dev/null
+swift build --package-path examples/orders-swift
+$CLI test --ir build/orders.execspec.json --host examples/orders-swift/.build/debug/OrdersHost
+$CLI test --ir build/orders.execspec.json --host examples/orders-ts/host.mjs
+
 echo "== determinism: second compile is byte-identical =="
 $CLI compile --module examples/kv-spec/dist/spec.js --out build/kv.execspec.json.2
 cmp build/kv.execspec.json build/kv.execspec.json.2

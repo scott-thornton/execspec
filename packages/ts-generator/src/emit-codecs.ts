@@ -274,7 +274,7 @@ function emitStructCodec(
       lines.push(`        }`);
       lines.push(`        ${property} = ${decoderExpression(field.type)}(raw);`);
       lines.push(`    }`);
-      parts.push(`        ${property},`);
+      parts.push(`        ...(${property} === undefined ? {} : { ${property} }),`);
     } else {
       lines.push(`    if (!("${field.name}" in object)) {`);
       lines.push(`        throw new ExecSpecHostFailure("invalidRequest", "${name}: missing required field '${field.name}'");`);

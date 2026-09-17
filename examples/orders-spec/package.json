@@ -1,0 +1,16 @@
+{
+  "name": "@execspec/example-orders-spec",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/spec.js",
+  "types": "./dist/spec.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test 'dist-test/test/*.test.js'"
+  },
+  "dependencies": {
+    "@execspec/dsl": "*"
+  }
+}

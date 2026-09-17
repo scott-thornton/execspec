@@ -90,9 +90,17 @@ spec.scenario(
 export default spec.build();
 ```
 
-See `examples/kv-spec/src/spec.ts` for the complete ten-scenario KV
-specification, including the full-width int64 wire proof and the
-process-isolation scenarios.
+Two complete examples live in the repository:
+
+- `examples/kv-spec` — the systems example: eleven scenarios including
+  the full-width int64 wire proof and process isolation, implemented in
+  both Swift (`examples/kv-swift`) and TypeScript (`examples/kv-ts`).
+- `examples/orders-spec` — a realistic ordering domain: carts, exact
+  integer money math, promo thresholds, currency rules, and checkout
+  with decline paths. Fifteen scenarios pin the business rules; the
+  same suite passes against the Swift (`examples/orders-swift`) and
+  TypeScript (`examples/orders-ts`) implementations — identical money,
+  identical behavior, two languages.
 
 ## Compile it
 
