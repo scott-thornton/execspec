@@ -27,3 +27,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 8: Semantic IR v1 types (ir.ts) per docs/ir-v1.md. Green (38 tests).
 - Task 9: IR validation + static expression typing (validate-ir.ts): duplicates, unknown refs, cycles, optional-unit, zero-op/zero-scenario/zero-step, forward/duplicate bindings, field traversal, literal deep validation, expectEqual type checks. Green (52 tests).
 - Task 10: canonical JSON (canonical-json.ts): code-point key sorting, stable arrays, standard escaping, safe-integer numbers only. Green (59 tests).
+- Task 11: semantic-value JSON codec (semantic-value-json.ts): type-directed decode with issue paths, validated encode, full-width int64 wire, null/unknown-field/union-shape rejections. Green.
