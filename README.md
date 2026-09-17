@@ -46,16 +46,23 @@ Packages: `@execspec/core` (semantic model, IR, digest),
 
 ## Requirements
 
-- Node.js ≥ 24 and npm (workspaces) — tested on Node 25
-- Swift toolchain with the Swift 6 language mode — tested on Swift 6.2
+- macOS with a Swift 6 toolchain (the runtime uses POSIX descriptors via
+  `Darwin`; Linux is not yet a supported host platform)
+- Node.js ≥ 24 and npm (workspaces)
 - Bash for `scripts/acceptance.sh`
 
 ## Install
 
+The packages are not yet published to npm — use it from a clone:
+
 ```bash
+git clone <this-repository>
+cd execspec
 npm ci
 npm run build
 ```
+
+Every command below runs from the repository root.
 
 ## Define a specification
 
