@@ -3,17 +3,22 @@ name: ci
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 jobs:
   check:
-    # macOS runner: the Swift side of the gate needs the Swift 6 toolchain
-    # and the runtime currently targets Darwin (POSIX read/write).
-    runs-on: macos-14
+    # The Swift side needs the Swift 6 toolchain; select the newest
+    # installed Xcode explicitly (macos-14 defaults to Swift 5.10).
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Select newest Xcode (Swift 6)
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+      - run: swift --version
       - run: npm ci
       - run: npm run check
