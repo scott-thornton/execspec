@@ -19,3 +19,4 @@ One entry per plan task, appended after the task's gate passes.
 - Task 1: bootstrap complete. Gate `npm ci && npm run typecheck && npm test` exits 0 (1 test). Deviation: `node --test <dir>` is rejected by Node 25; test scripts use the explicit glob `dist-test/test/*.test.js` instead. Toolchain deltas recorded above.
 - Task 2: normative docs created (specification, semantic-model, ir-v1, protocol-v1, autonomous-loop) + docs existence/header test in cli. Green.
 - Task 3: identifier validation (ids.ts) with grammar tests. Green (8 tests).
+- Task 4: semantic type AST (types.ts) with factories and structural guards. Green (12 tests).
