@@ -104,6 +104,11 @@ export function inferExpressionType(
       return bound;
     }
     case "field": {
+      if (expression.base.kind === "literal") {
+        throw new IRTypeError(
+          "the base of a field expression must not be a literal (no static type context)",
+        );
+      }
       const base = inferExpressionType(expression.base, bindings, environment);
       if (base.kind !== "ref") {
         throw new IRTypeError(
@@ -422,6 +427,13 @@ function validateScenario(
 
     const actualType = safeInfer(step.actual, bindings, environment, stepScope, diagnostics);
     const expectedType = safeInfer(step.expected, bindings, environment, stepScope, diagnostics);
+    if (step.actual.kind === "literal" && step.expected.kind === "literal") {
+      diagnostics.push({
+        code: "expectEqual.bothLiterals",
+        message: "expectEqual must not compare two literals: neither side has an independent type context",
+        scope: stepScope,
+      });
+    }
     if (actualType !== undefined && expectedType !== undefined && !typeEquals(actualType, expectedType)) {
       diagnostics.push({
         code: "expectEqual.typeMismatch",

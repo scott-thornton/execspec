@@ -334,18 +334,28 @@ test("field traversal validation", () => {
   // Unknown struct field.
   assert.throws(() =>
     inferExpressionType(
-      { kind: "field", base: { kind: "literal", value: structValue("GetRequest", new Map([["key", stringValue("a")]])) }, field: "nope" },
-      new Map(),
+      { kind: "field", base: { kind: "binding", binding: "getRequest" }, field: "nope" },
+      new Map([["getRequest", refType("GetRequest")]]),
       env,
     ),
     /no field/,
   );
 
+  // Literal bases have no static type context in v0.1.
+  assert.throws(() =>
+    inferExpressionType(
+      { kind: "field", base: { kind: "literal", value: structValue("GetRequest", new Map([["key", stringValue("a")]])) }, field: "key" },
+      new Map(),
+      env,
+    ),
+    /literal/,
+  );
+
   // Field on a primitive.
   assert.throws(() =>
     inferExpressionType(
-      { kind: "field", base: { kind: "literal", value: stringValue("a") }, field: "value" },
-      new Map(),
+      { kind: "field", base: { kind: "binding", binding: "flag" }, field: "value" },
+      new Map([["flag", stringType()]]),
       env,
     ),
     /non-nominal/,
@@ -392,31 +402,32 @@ test("heterogeneous and empty list literals have no static type", () => {
   );
 });
 
-test("well-formed list literals infer element types", () => {
+test("well-formed list literals validate against binding types", () => {
   const ir = irWith();
   const scenario = ir.scenarios[0];
   if (scenario === undefined) {
     assert.fail("fixture scenario missing");
   }
+  const getCall = scenario.steps[1];
+  if (getCall?.kind !== "call") {
+    assert.fail("fixture step missing");
+  }
   const listScenario = irWith({
     scenarios: [{
       ...scenario,
       steps: [
+        getCall,
         {
           kind: "expectEqual",
-          actual: {
-            kind: "literal",
-            value: listValue([stringValue("a"), stringValue("b")]),
-          },
+          actual: { kind: "field", base: { kind: "binding", binding: "get" }, field: "value" },
           expected: {
             kind: "literal",
-            value: listValue([stringValue("a")]),
+            value: stringValue("one"),
           },
         },
       ],
     }],
   });
-  // Both sides are list<string> literals of different lengths: statically
-  // type-compatible, so no diagnostics.
+  // field(get, value) is string on GetResult; the string literal matches.
   assert.deepEqual(codes(listScenario), []);
 });

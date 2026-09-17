@@ -205,3 +205,18 @@ The compiler statically infers the type of every value expression:
 (literal inputs are validated value-wise against the input type).
 `expectEqual` sides must be type-compatible. Incompatible specifications
 fail to compile before any target code is generated.
+
+### ADR: literal type contexts (v0.1)
+
+Literal values serialize to IR JSON in wire form, which is only decodable
+with a known expected type (a bare `{}` is unit-or-empty-struct; a bare
+string is string-or-enum). To keep IR decoding total and deterministic,
+v0.1 requires every literal to have a static type context:
+
+1. An `expectEqual` step must not have literal expressions on **both**
+   sides (a constant-versus-constant expectation is vacuous anyway). The
+   literal side is decoded against the inferred type of the other side.
+2. The base of a `field` expression must be a `binding` or `field`
+   expression, never a literal.
+
+Both restrictions are enforced by IR validation and by the compiler.
