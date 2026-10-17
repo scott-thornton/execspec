@@ -207,3 +207,21 @@ test("test command supports --scenario filtering and --concurrency", async () =>
     2,
   );
 });
+
+test("init scaffolds a self-contained specification package", async () => {
+  const work = await mkdtemp(join(tmpdir(), "execspec-init-"));
+  const io = bufferedIO();
+  assert.equal(await runCli(["init", "--name", "acme-contract", "--out", work], io.io), 0);
+  assert.match(io.out(), /npm install && npm test/);
+  const pkg = JSON.parse(await readFile(join(work, "package.json"), "utf8")) as {
+    name: string; scripts: Record<string, string>; dependencies: Record<string, string>;
+  };
+  assert.equal(pkg.name, "acme-contract");
+  assert.equal(pkg.dependencies["@execspec/dsl"], "^0.3.0");
+  for (const file of ["tsconfig.json", "tsconfig.test.json", "README.md", "src/spec.ts", "test/spec.test.ts"]) {
+    await readFile(join(work, file), "utf8");
+  }
+  const spec = await readFile(join(work, "src/spec.ts"), "utf8");
+  assert.match(spec, /spec\.operation\(operation\("demo\.echo"/);
+  assert.equal(await runCli(["init", "--name", "Bad Name", "--out", join(work, "x")], bufferedIO().io), 2);
+});

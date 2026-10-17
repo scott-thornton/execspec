@@ -11,7 +11,16 @@ to the repository root.
 
 ## 1. Author a specification
 
-A specification is a TypeScript module that exports an authoring graph.
+Scaffold a fresh specification package with one command (once the
+packages are installed or linked):
+
+```bash
+npx execspec init --name acme-contract --out ./acme-contract
+cd acme-contract && npm install && npm test
+```
+
+Or write the module by hand. A specification is a TypeScript module
+that exports an authoring graph.
 Types, operations, and scenarios are all static data - no callbacks, no
 async test bodies.
 

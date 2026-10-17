@@ -9,6 +9,7 @@ import { compileCommand } from "./compile-command.js";
 import { generateSwiftCommand } from "./generate-swift-command.js";
 import { generateTypescriptCommand } from "./generate-typescript-command.js";
 import { testCommand } from "./test-command.js";
+import { initCommand } from "./init-command.js";
 
 export interface CliIO {
   writeOut(text: string): void;
@@ -25,6 +26,7 @@ export const defaultIO: CliIO = {
 };
 
 const USAGE = `usage:
+  execspec init --name <package-name> --out <directory>
   execspec compile --module <spec.js> --out <file.execspec.json>
   execspec generate swift --ir <file.execspec.json> --out <dir>
   execspec generate typescript --ir <file.execspec.json> --out <dir>
@@ -48,6 +50,9 @@ export async function runCli(argv: readonly string[], io: CliIO = defaultIO): Pr
   }
   if (command === "test") {
     return await testCommand(rest, io);
+  }
+  if (command === "init") {
+    return await initCommand(rest, io);
   }
   io.writeErr(`unknown command: ${command}\n${USAGE}`);
   return 2;
