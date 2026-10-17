@@ -177,12 +177,15 @@ Canonical IR JSON:
 
 ## 4. Specification digest
 
-The digest is lowercase hex SHA-256 over the canonical serialization of
-the `semantic` subtree only:
+The digest is lowercase hex SHA-256 over the domain-separated canonical
+serialization of the `semantic` subtree only:
 
 ```text
-digest = sha256_hex( canonical_bytes( semanticIRToJSON(ir.semantic) ) )
+digest = sha256_hex( "execspec-semantic-1" + 0x00 + canonical_bytes( semanticIRToJSON(ir.semantic) ) )
 ```
+
+The prefix pins the semantic-model lineage (see `docs/compatibility.md`):
+a digest can never alias meaning across model versions.
 
 `format`, `irVersion`, and `metadata` never contribute. Consequently,
 semantically equivalent specifications that differ only in declaration

@@ -1,6 +1,6 @@
 {
   "name": "execspec",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Executable specification system: TypeScript-authored specs compile to canonical semantic IR, Swift is generated as an implementation target, and a harness verifies implementations over a language-neutral process protocol.",

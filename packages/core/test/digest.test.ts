@@ -126,12 +126,26 @@ test("declaration insertion order does not affect canonical bytes or digest", ()
   assert.match(specificationDigest(forward), /^[0-9a-f]{64}$/);
 });
 
-test("digest equals sha256 of the canonical semantic bytes", () => {
+test("digest equals domain-separated sha256 of the canonical semantic bytes", () => {
   const ir = buildIR("forward");
   const expected = createHash("sha256")
-    .update(Buffer.from(serializeSemanticIR(ir), "utf8"))
+    .update(Buffer.concat([
+      Buffer.from("execspec-semantic-1", "utf8"),
+      Buffer.from([0x00]),
+      Buffer.from(serializeSemanticIR(ir), "utf8"),
+    ]))
     .digest("hex");
   assert.equal(specificationDigest(ir), expected);
+  // Domain separation: identical canonical bytes under a different
+  // lineage prefix must produce a different digest.
+  const otherLineage = createHash("sha256")
+    .update(Buffer.concat([
+      Buffer.from("execspec-semantic-2", "utf8"),
+      Buffer.from([0x00]),
+      Buffer.from(serializeSemanticIR(ir), "utf8"),
+    ]))
+    .digest("hex");
+  assert.notEqual(specificationDigest(ir), otherLineage);
 });
 
 test("scenario step order is semantic and changes the digest", () => {

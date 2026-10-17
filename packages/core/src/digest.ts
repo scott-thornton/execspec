@@ -147,10 +147,18 @@ export function serializeSemanticIR(ir: SemanticIR): string {
   return canonicalJSONStringify(semanticIRToJSON(ir));
 }
 
+/** Domain separation prefix: identifies the semantic-model lineage so a
+ *  digest can never alias meaning across model versions (see
+ *  docs/compatibility.md). */
+export const SEMANTIC_DIGEST_DOMAIN = "execspec-semantic-1";
+
 export function specificationDigest(ir: SemanticIR): string {
-  return createHash("sha256")
-    .update(Buffer.from(serializeSemanticIR(ir), "utf8"))
-    .digest("hex");
+  const prefixed = Buffer.concat([
+    Buffer.from(SEMANTIC_DIGEST_DOMAIN, "utf8"),
+    Buffer.from([0x00]),
+    Buffer.from(serializeSemanticIR(ir), "utf8"),
+  ]);
+  return createHash("sha256").update(prefixed).digest("hex");
 }
 
 export function semanticIRDocumentToJSON(document: SemanticIRDocument): JSONValue {

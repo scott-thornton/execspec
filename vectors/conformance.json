@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "notes": "Language-neutral normative corpus. Consumers read this raw file. Entries are append-only: corrections append superseding entries, they never edit or remove. NaN and infinities are recorded as the strings \"NaN\", \"Infinity\", \"-Infinity\".",
+  "jsonParser": {
+    "accept": [
+      {
+        "text": "{}",
+        "value": {}
+      },
+      {
+        "text": "[1, true, null]",
+        "value": [
+          1,
+          true,
+          null
+        ]
+      },
+      {
+        "text": "{\"a\":\"x\",\"b\":[2]}",
+        "value": {
+          "a": "x",
+          "b": [
+            2
+          ]
+        }
+      },
+      {
+        "text": "\"\u00e9 \ud83d\ude00\"",
+        "value": "\u00e9 \ud83d\ude00"
+      },
+      {
+        "text": "\"\\ud83d\\ude00\"",
+        "value": "\ud83d\ude00"
+      },
+      {
+        "text": "-0.5e2",
+        "value": -50
+      }
+    ],
+    "reject": [
+      "{\"a\":1,\"a\":2}",
+      "[1,]",
+      "01",
+      "\"\\ud800\"",
+      "{\"a\"1}",
+      "1 2",
+      "",
+      "NaN",
+      ".5",
+      "1.",
+      "+1",
+      "[1 2]",
+      "tru",
+      "undefined",
+      "\"a\nb\""
+    ]
+  },
+  "int64Spelling": {
+    "accept": [
+      "0",
+      "-1",
+      "1",
+      "9223372036854775807",
+      "-9223372036854775808",
+      "10",
+      "9223372036854775808",
+      "-9223372036854775809"
+    ],
+    "reject": [
+      "",
+      "-",
+      "-0",
+      "01",
+      "+1",
+      "1.0",
+      "1e3",
+      " 1",
+      "1 ",
+      "0x10"
+    ],
+    "notes": "Spelling canonicality only; int64 range enforcement (2^63 bounds) is a decoder rule."
+  },
+  "float64Spelling": {
+    "pairs": [
+      {
+        "of": "0",
+        "spelling": "0"
+      },
+      {
+        "of": "0",
+        "spelling": "0"
+      },
+      {
+        "of": "0.5",
+        "spelling": "0.5"
+      },
+      {
+        "of": "100",
+        "spelling": "100"
+      },
+      {
+        "of": "150",
+        "spelling": "150"
+      },
+      {
+        "of": "1e-06",
+        "spelling": "0.000001"
+      },
+      {
+        "of": "1e-07",
+        "spelling": "1e-7"
+      },
+      {
+        "of": "1e+21",
+        "spelling": "1e+21"
+      },
+      {
+        "of": "9007199254740991",
+        "spelling": "9007199254740991"
+      },
+      {
+        "of": "0.3333333333333333",
+        "spelling": "0.3333333333333333"
+      },
+      {
+        "of": "1.7976931348623157e+308",
+        "spelling": "1.7976931348623157e+308"
+      },
+      {
+        "of": "5e-324",
+        "spelling": "5e-324"
+      },
+      {
+        "of": "-42.25",
+        "spelling": "-42.25"
+      },
+      {
+        "of": "NaN",
+        "spelling": "NaN"
+      },
+      {
+        "of": "Infinity",
+        "spelling": "Infinity"
+      },
+      {
+        "of": "-Infinity",
+        "spelling": "-Infinity"
+      }
+    ],
+    "reject": [
+      ".5",
+      "01",
+      "1e5",
+      "+1",
+      "-0.0",
+      "nan",
+      "infinity",
+      "NaN "
+    ],
+    "notes": "Canonical = ECMAScript shortest round-trip."
+  },
+  "bytesBase64": {
+    "accept": [
+      {
+        "spelling": "",
+        "hex": ""
+      },
+      {
+        "spelling": "AQID",
+        "hex": "010203"
+      },
+      {
+        "spelling": "AQID+g==",
+        "hex": "010203fa"
+      },
+      {
+        "spelling": "AQID+gY=",
+        "hex": "010203fa06"
+      },
+      {
+        "spelling": "AAAA",
+        "hex": "000000"
+      },
+      {
+        "spelling": "aQI=",
+        "hex": "6902"
+      }
+    ],
+    "reject": [
+      "AQID+g",
+      "AQID+g===",
+      " AQID",
+      "AQID ",
+      "AQID_g==",
+      "AQID-g=="
+    ]
+  },
+  "digestVectors": [
+    {
+      "name": "semantic-minimal",
+      "domain": "execspec-semantic-1",
+      "canonical": "{\"operations\":[{\"id\":\"vector.echo\",\"input\":{\"kind\":\"ref\",\"typeId\":\"Pair\"},\"output\":{\"kind\":\"ref\",\"typeId\":\"Pair\"}}],\"scenarios\":[{\"description\":\"echo\",\"id\":\"vector.echo.once\",\"steps\":[{\"binding\":\"echo\",\"input\":{\"kind\":\"literal\",\"value\":{\"left\":{\"$i64\":\"7\"},\"right\":{\"$f64\":\"0.5\"}}},\"kind\":\"call\",\"operationId\":\"vector.echo\"}]}],\"specificationName\":\"vector\",\"specificationVersion\":\"1.0.0\",\"types\":[{\"fields\":[{\"name\":\"left\",\"type\":{\"kind\":\"int64\"}},{\"name\":\"right\",\"type\":{\"kind\":\"float64\"}}],\"id\":\"Pair\",\"kind\":\"struct\"}]}",
+      "digest": "e431877dcfc9b0a58bad88c64a9add01ef80e31bea47193198089453572898d7",
+      "semanticDocumentation": {
+        "operations": [
+          {
+            "id": "vector.echo",
+            "input": {
+              "kind": "ref",
+              "typeId": "Pair"
+            },
+            "output": {
+              "kind": "ref",
+              "typeId": "Pair"
+            }
+          }
+        ],
+        "scenarios": [
+          {
+            "description": "echo",
+            "id": "vector.echo.once",
+            "steps": [
+              {
+                "binding": "echo",
+                "input": {
+                  "kind": "literal",
+                  "value": {
+                    "left": {
+                      "$i64": "7"
+                    },
+                    "right": {
+                      "$f64": "0.5"
+                    }
+                  }
+                },
+                "kind": "call",
+                "operationId": "vector.echo"
+              }
+            ]
+          }
+        ],
+        "specificationName": "vector",
+        "specificationVersion": "1.0.0",
+        "types": [
+          {
+            "fields": [
+              {
+                "name": "left",
+                "type": {
+                  "kind": "int64"
+                }
+              },
+              {
+                "name": "right",
+                "type": {
+                  "kind": "float64"
+                }
+              }
+            ],
+            "id": "Pair",
+            "kind": "struct"
+          }
+        ]
+      }
+    }
+  ]
+}

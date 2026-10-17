@@ -22,7 +22,7 @@ export class KVExecSpecDispatcher {
     readonly specificationDigest: string;
 
     constructor(private readonly implementation: KVSpecificationImplementation) {
-        this.specificationDigest = "0fe54e06c369c8990119c5a791af5eecb91a7d86c7e3ff2afa1238ee3bd45e0e";
+        this.specificationDigest = "b2c8fa5134bd961e188e703af4f32b6668aa1f2382bc140c65468e760bdc1baa";
     }
 
     async dispatch(operation: string, input: WireValue): Promise<WireValue> {

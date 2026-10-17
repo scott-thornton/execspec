@@ -21,7 +21,7 @@ export class OrdersExecSpecDispatcher {
     readonly specificationDigest: string;
 
     constructor(private readonly implementation: OrdersSpecificationImplementation) {
-        this.specificationDigest = "63323c81d4626f9526c1ce9f98b98c15ba3cc09ca144210a0dbea498dde5354a";
+        this.specificationDigest = "ee7ce4789466f68ac959b81952cb4ae1053d0c8129134159b1e1541188da3dcc";
     }
 
     async dispatch(operation: string, input: WireValue): Promise<WireValue> {

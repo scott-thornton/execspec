@@ -204,6 +204,15 @@ node packages/cli/dist/index.js test \
 Every scenario runs in a fresh host process; the exit code is zero only
 when all scenarios pass.
 
+## What "green" means
+
+A passing conformance run proves exactly one thing: for the scenarios in
+the specification, the implementation produced the specified
+observations. It is not a proof of general correctness, and scenarios
+are deliberately exact-value and declarative. Treat a green run as
+strong evidence of contract conformance, not as verification of the
+system.
+
 ## Semantic guarantees
 
 - int64 is full-range signed 64-bit end to end (wire form
@@ -255,6 +264,9 @@ property-based testing. The CLI loads compiled ESM modules, not raw
 - `docs/getting-started.md` - the full walkthrough: author, compile,
   generate both targets, implement, run conformance, troubleshoot.
 - `docs/cli-reference.md` - every command, flag, and exit code.
+- `docs/compatibility.md` - what bumps the digest lineage, IR version,
+  or protocol version; the domain-separated digest; the conformance
+  vector corpus policy.
 - `docs/specification.md`, `docs/semantic-model.md`, `docs/ir-v1.md`,
   `docs/protocol-v1.md` - the normative documents.
 - `CONTRIBUTING.md` and `AGENTS.md` - how to change this repository

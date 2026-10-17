@@ -8,7 +8,7 @@ public struct OrdersExecSpecDispatcher<Implementation: OrdersSpecificationImplem
 
     public init(implementation: Implementation) {
         self.implementation = implementation
-        self.specificationDigest = "63323c81d4626f9526c1ce9f98b98c15ba3cc09ca144210a0dbea498dde5354a"
+        self.specificationDigest = "ee7ce4789466f68ac959b81952cb4ae1053d0c8129134159b1e1541188da3dcc"
     }
 
     public func dispatch(operation: String, input: JSONValue) async throws -> JSONValue {

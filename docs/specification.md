@@ -62,8 +62,11 @@ Roles:
 10. v0.1 has no reset operation, no callbacks, no streaming, no
     concurrency specification, no property-based testing, no arbitrary
     semantic predicates.
-11. v0.1 supports only: `unit`, `boolean`, `int64`, `string`, optional
-    struct fields, `list`, named struct, named enum, named tagged union.
+11. v0.2 supports: `unit`, `boolean`, `int64`, `float64`, `string`,
+    `bytes`, optional struct fields, `list`, `map` (string or int64
+    keys), named struct, named enum, named tagged union. The wire and
+    equality rules for every kind are normative in
+    `docs/semantic-model.md`.
 12. `optional` is permitted only on struct fields in v0.1.
 13. Struct and union declarations are nominal. Anonymous structs, enums,
     and unions are prohibited.
@@ -86,7 +89,10 @@ Roles:
 22. Operation timeout is 5 seconds by default, configurable through the
     CLI only.
 23. Protocol version is integer `1`. IR version is integer `1`.
-24. The first reference system is a stateful key/value store.
+    Version-change policy: `docs/compatibility.md`.
+24. The reference systems are a stateful key/value store and an
+    ordering domain, each implemented in both targets (Swift,
+    TypeScript).
 
 ## 4. Naming rules
 
@@ -126,10 +132,11 @@ protocol.
 
 ## 7. Deferred scope
 
-Floats, unsigned integers, bytes, timestamps, durations, maps, sets,
-tuples, recursive types, refinements, preconditions/postconditions,
-property-based testing, fuzzing, callbacks, streaming, cancellation,
-parallel scenarios, virtual clocks, randomness, network/filesystem
-capabilities, snapshot testing, HTTP/socket/gRPC transports, FFI, and all
-additional backends are explicitly excluded from v0.1. They are not
-missing work; they are excluded scope.
+Unsigned integers, timestamps, durations, sets, tuples, recursive types,
+refinements, preconditions/postconditions, property-based testing,
+fuzzing, callbacks, streaming, cancellation, concurrency semantics,
+virtual clocks, randomness, network/filesystem capabilities, snapshot
+testing, HTTP/socket/gRPC transports, FFI, and additional target
+backends beyond Swift and TypeScript are explicitly excluded. They are
+not missing work; they are excluded scope - see `docs/compatibility.md`
+for the rules governing additions.
