@@ -5,6 +5,8 @@ package com.execspec.generated;
 import com.execspec.runtime.*;
 import java.util.*;
 
+import static com.execspec.generated.ExecSpecCodecs.*;
+
 final class BillingExecSpecDispatcher implements Host.Dispatcher {
     private final BillingSpecificationImplementation implementation;
     private final String specificationDigest = "fa61ac6423a8efb22d66b0bf315086ced54ed1053f8657c281c1e534694ae4fc";

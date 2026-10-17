@@ -5,16 +5,52 @@ import { javaPropertyName, javaTypeName } from "./identifiers.js";
 import { javaValueTypeName } from "./emit.js";
 
 export function decoderExpression(type: ValueType): string {
-  return type.kind === "ref" ? `decode${javaTypeName(type.typeId)}` : `decodeValue_${type.kind}`;
+  if (type.kind === "ref") return `decode${javaTypeName(type.typeId)}`;
+  if (type.kind === "list") return `decodeListOf${listElementName(type.element)}`;
+  return `decodeValue_${type.kind}`;
+}
+
+function listElementName(element: ValueType): string {
+  switch (element.kind) {
+    case "ref": return javaTypeName(element.typeId);
+    case "string": return "String";
+    case "int64": return "Long";
+    case "float64": return "Double";
+    case "boolean": return "Boolean";
+    default: return "Object";
+  }
 }
 
 export function encoderExpression(type: ValueType): string {
-  return type.kind === "ref" ? `encode${javaTypeName(type.typeId)}` : `encodeValue_${type.kind}`;
+  if (type.kind === "ref") return `encode${javaTypeName(element_typeId(type))}`;
+  if (type.kind === "list") return `encodeListOf${listElementName(type.element)}`;
+  return `encodeValue_${type.kind}`;
+}
+
+function element_typeId(type: ValueType): string {
+  return type.kind === "ref" ? type.typeId : "";
 }
 
 export function emitJavaCodecs(ir: SemanticIR): string {
   const chunks: string[] = [];
   chunks.push(emitPrimitiveCodecs());
+  // Detect all list element types used and generate per-type list codecs
+  const listElements = new Set<string>();
+  for (const declaration of ir.types as readonly TypeDeclaration[]) {
+    if (declaration.kind === "struct") {
+      for (const field of declaration.fields) {
+        if (field.type.kind === "list") listElements.add(listElementKey(field.type.element));
+      }
+    } else if (declaration.kind === "union") {
+      for (const unionCase of declaration.cases) {
+        if (unionCase.payload.kind === "list") listElements.add(listElementKey(unionCase.payload.element));
+      }
+    }
+  }
+  for (const elementKey of listElements) {
+    chunks.push(emitListCodec(elementKey));
+  }
+
   for (const declaration of ir.types as readonly TypeDeclaration[]) {
     if (declaration.kind === "struct") {
       chunks.push(emitStructCodec(declaration));
@@ -314,4 +350,41 @@ function emitUnionCodec(
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+
+function listElementKey(element: ValueType): string {
+  return listElementName(element);
+}
+
+function emitListCodec(elementKey: string): string {
+  const decodeCall = elementKey === "String" ? "decodeValue_string"
+    : elementKey === "Long" ? "decodeValue_int64"
+    : elementKey === "Double" ? "decodeValue_float64"
+    : elementKey === "Boolean" ? "decodeValue_boolean"
+    : `decode${elementKey}`;
+  const encodeCall = elementKey === "String" ? "encodeValue_string"
+    : elementKey === "Long" ? "encodeValue_int64"
+    : elementKey === "Double" ? "encodeValue_float64"
+    : elementKey === "Boolean" ? "encodeValue_boolean"
+    : `encode${elementKey}`;
+  const javaType = elementKey === "String" ? "String"
+    : elementKey === "Long" ? "Long"
+    : elementKey === "Double" ? "Double"
+    : elementKey === "Boolean" ? "Boolean"
+    : elementKey;
+  return `    static List<${javaType}> decodeListOf${elementKey}(JSONValue value) {
+        if (value instanceof JSONValue.Arr arr) {
+            List<${javaType}> result = new ArrayList<>();
+            for (JSONValue item : arr.items()) result.add(${decodeCall}(item));
+            return result;
+        }
+        throw fail("list: expected a JSON array");
+    }
+
+    static JSONValue encodeListOf${elementKey}(List<${javaType}> value) {
+        List<JSONValue> items = new ArrayList<>();
+        for (${javaType} item : value) items.add(${encodeCall}(item));
+        return JSONValue.arr(items);
+    }`;
 }

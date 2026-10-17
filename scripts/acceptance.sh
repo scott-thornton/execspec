@@ -52,6 +52,10 @@ swift build --package-path examples/billing-swift
 $CLI test --ir build/billing.execspec.json --host examples/billing-swift/.build/debug/BillingHost
 $CLI test --ir build/billing.execspec.json --host examples/billing-ts/host.mjs
 
+echo "== billing on Java: third language target =="
+javac --release 17 -cp targets/java-runtime/build -d examples/billing-java/build examples/billing-java/src/com/execspec/generated/*.java
+$CLI test --ir build/billing.execspec.json --host examples/billing-java/host.sh
+
 echo "== determinism: second compile is byte-identical =="
 $CLI compile --module examples/kv-spec/dist/spec.js --out build/kv.execspec.json.2
 cmp build/kv.execspec.json build/kv.execspec.json.2

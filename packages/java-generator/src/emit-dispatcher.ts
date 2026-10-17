@@ -32,6 +32,8 @@ export function emitJavaDispatcher(
   const protocolName = javaImplementationProtocolName(ir.specificationName);
   const dispatcherName = `${javaSpecificationPrefix(ir.specificationName)}ExecSpecDispatcher`;
   const lines: string[] = [];
+  lines.push(`import static com.execspec.generated.ExecSpecCodecs.*;`);
+  lines.push("");
   lines.push(`final class ${dispatcherName} implements Host.Dispatcher {`);
   lines.push(`    private final ${protocolName} implementation;`);
   lines.push(`    private final String specificationDigest = "${digest}";`);

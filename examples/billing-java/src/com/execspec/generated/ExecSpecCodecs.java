@@ -161,6 +161,21 @@ public final class ExecSpecCodecs {
         return new Host.HostFailure("invalidRequest", message);
     }
 
+    static List<InvoiceLine> decodeListOfInvoiceLine(JSONValue value) {
+        if (value instanceof JSONValue.Arr arr) {
+            List<InvoiceLine> result = new ArrayList<>();
+            for (JSONValue item : arr.items()) result.add(decodeInvoiceLine(item));
+            return result;
+        }
+        throw fail("list: expected a JSON array");
+    }
+
+    static JSONValue encodeListOfInvoiceLine(List<InvoiceLine> value) {
+        List<JSONValue> items = new ArrayList<>();
+        for (InvoiceLine item : value) items.add(encodeInvoiceLine(item));
+        return JSONValue.arr(items);
+    }
+
     static ActivateRequest decodeActivateRequest(JSONValue value) {
         if (!(value instanceof JSONValue.Obj obj)) throw fail("ActivateRequest: expected a JSON object");
         for (String key : obj.entries().keySet()) {
@@ -411,12 +426,12 @@ public final class ExecSpecCodecs {
         JSONValue rawTotal = obj.entries().get("total");
         if (rawTotal == null) throw fail("Invoice: missing required field 'total'");
         if (rawTotal instanceof JSONValue.Null) throw fail("Invoice: field 'total' must not be null");
-        return new Invoice(decodeValue_list(rawLines), decodeValue_string(rawSubscriptionId), decodeMoney(rawTotal));
+        return new Invoice(decodeListOfInvoiceLine(rawLines), decodeValue_string(rawSubscriptionId), decodeMoney(rawTotal));
     }
 
     static JSONValue encodeInvoice(Invoice value) {
         Map<String, JSONValue> m = new LinkedHashMap<>();
-        m.put("lines", encodeValue_list(value.getLines()));
+        m.put("lines", encodeListOfInvoiceLine(value.getLines()));
         m.put("subscriptionId", encodeValue_string(value.getSubscriptionId()));
         m.put("total", encodeMoney(value.getTotal()));
         return JSONValue.obj(m);
