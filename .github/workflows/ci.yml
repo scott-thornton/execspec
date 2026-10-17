@@ -12,7 +12,7 @@ jobs:
     # installed Xcode explicitly (macos-14 defaults to Swift 5.10).
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Select newest Xcode (Swift 6)
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
       - uses: actions/setup-java@v4
