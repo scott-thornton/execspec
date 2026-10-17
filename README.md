@@ -253,7 +253,7 @@ optional struct fields, `list`, `map<string|int64, T>`, named structs,
 enums, and tagged unions; no timestamps, sets, tuples, or recursive
 types. Scenarios support only `call` and `expectEqual` steps with
 literal/binding/field expressions (plus table-driven outlines at
-authoring time). Two implementation targets (Swift, TypeScript);
+authoring time). Three implementation targets (Swift, TypeScript, Java);
 sequential requests per host; no callbacks/streaming/reset; no
 property-based testing. The CLI loads compiled ESM modules, not raw
 `.ts` files. Parallel scenario execution is available via

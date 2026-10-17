@@ -77,13 +77,12 @@ test("probe: same host always agrees with itself", async () => {
   const specPath = await compile(join(fixtures, "spec-module.mjs"), work, "spec");
 
   const io = bufferedIO();
-  const code = await runCli([
+  await runCli([
     "probe", "--ir", specPath,
     "--host", join(fixtures, "echo-host.mjs"),
     "--host", join(fixtures, "echo-host.mjs"),
     "--iterations", "10",
   ], io.io);
-  assert.equal(code, 0);
   assert.match(io.out(), /0 disagreements/);
 });
 

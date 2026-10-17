@@ -85,6 +85,7 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
 
   let totalProbes = 0;
   let disagreements = 0;
+  let failedProbes = 0;
 
   const sortedOps = [...document.semantic.operations].sort((a, b) => compareByCodePoint(a.id, b.id));
 
@@ -131,6 +132,10 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
       }
 
       totalProbes++;
+      if (!allSucceeded) {
+        failedProbes++;
+        continue;
+      }
       if (allSucceeded && outputs.length === hostProcs.length) {
         const first = outputs[0];
         if (first !== undefined) {
@@ -154,8 +159,11 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
     }
   }
 
-  io.writeOut(`\n${totalProbes} probes, ${disagreements} disagreements\n`);
-  return disagreements > 0 ? 1 : 0;
+  io.writeOut(`\n${totalProbes} probes, ${disagreements} disagreements, ${failedProbes} failed\n`);
+  if (failedProbes > 0) {
+    io.writeOut(`fail-closed: ${failedProbes} probe(s) could not obtain comparable outputs\n`);
+  }
+  return disagreements > 0 || failedProbes > 0 ? 1 : 0;
 }
 
 // --- Deterministic value generation ---

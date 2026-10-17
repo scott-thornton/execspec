@@ -145,16 +145,26 @@ export function computeDiff(oldIR: SemanticIR, newIR: SemanticIR): readonly Chan
     }
   }
 
-  // Scenarios
-  const oldScenarios = new Set(oldIR.scenarios.map((s) => s.id));
-  const newScenarios = new Set(newIR.scenarios.map((s) => s.id));
-  for (const id of oldScenarios) {
-    if (!newScenarios.has(id)) {
+  // Scenarios: check ID sets AND content changes
+  const oldScenarioMap = new Map(oldIR.scenarios.map((s) => [s.id, s]));
+  const newScenarioMap = new Map(newIR.scenarios.map((s) => [s.id, s]));
+  for (const [id, oldScenario] of oldScenarioMap) {
+    if (!newScenarioMap.has(id)) {
       changes.push({ kind: "removed", scope: `scenario ${id}`, description: "scenario removed (behavioral guarantee lost)", compatible: false });
+    } else {
+      const newScenario = newScenarioMap.get(id)!;
+      if (scenarioStepsChanged(oldScenario, newScenario)) {
+        changes.push({
+          kind: "changed",
+          scope: `scenario ${id}`,
+          description: "scenario steps or expectations changed (behavioral contract modified)",
+          compatible: false,
+        });
+      }
     }
   }
-  for (const id of newScenarios) {
-    if (!oldScenarios.has(id)) {
+  for (const id of newScenarioMap.keys()) {
+    if (!oldScenarioMap.has(id)) {
       changes.push({ kind: "added", scope: `scenario ${id}`, description: "scenario added", compatible: true });
     }
   }
@@ -335,4 +345,73 @@ function describeType(type: ValueType): string {
     case "list": return `list<${describeType(type.element)}>`;
     case "map": return `map<${describeType(type.key)}, ${describeType(type.value)}>`;
   }
+}
+
+
+function scenarioStepsChanged(
+  oldScenario: ScenarioIR,
+  newScenario: ScenarioIR,
+): boolean {
+  if (oldScenario.steps.length !== newScenario.steps.length) return true;
+  for (let i = 0; i < oldScenario.steps.length; i++) {
+    const oldStep = oldScenario.steps[i];
+    const newStep = newScenario.steps[i];
+    if (oldStep === undefined || newStep === undefined) return true;
+    if (oldStep.kind !== newStep.kind) return true;
+    if (oldStep.kind === "call" && newStep.kind === "call") {
+      if (oldStep.operationId !== newStep.operationId) return true;
+      if (oldStep.binding !== newStep.binding) return true;
+      // Compare input expressions structurally
+      if (expressionChanged(oldStep.input, newStep.input)) return true;
+    }
+    if (oldStep.kind === "expectEqual" && newStep.kind === "expectEqual") {
+      if (expressionChanged(oldStep.actual, newStep.actual)) return true;
+      if (expressionChanged(oldStep.expected, newStep.expected)) return true;
+    }
+  }
+  return false;
+}
+
+function expressionChanged(
+  oldExpr: import("@execspec/core").ValueExpressionIR,
+  newExpr: import("@execspec/core").ValueExpressionIR,
+): boolean {
+  if (oldExpr.kind !== newExpr.kind) return true;
+  switch (oldExpr.kind) {
+    case "literal": {
+      const newLit = newExpr as { kind: "literal"; value: unknown };
+      return JSON.stringify(canonicalizeValue(oldExpr.value)) !== JSON.stringify(canonicalizeValue(newLit.value));
+    }
+    case "binding": {
+      const newBind = newExpr as { kind: "binding"; binding: string };
+      return oldExpr.binding !== newBind.binding;
+    }
+    case "field": {
+      const newField = newExpr as { kind: "field"; base: import("@execspec/core").ValueExpressionIR; field: string };
+      return oldExpr.field !== newField.field || expressionChanged(oldExpr.base, newField.base);
+    }
+  }
+}
+
+function canonicalizeValue(value: unknown): unknown {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "object") {
+    if (value instanceof Map) {
+      const obj: Record<string, unknown> = {};
+      for (const [k, v] of value) {
+        obj[typeof k === "bigint" ? k.toString() : String(k)] = canonicalizeValue(v);
+      }
+      return obj;
+    }
+    if (Array.isArray(value)) return value.map(canonicalizeValue);
+    const obj: Record<string, unknown> = {};
+    const sortedKeys = Object.keys(value).sort();
+    for (const key of sortedKeys) {
+      const val = (value as Record<string, unknown>)[key];
+      if (val !== undefined) obj[key] = canonicalizeValue(val);
+    }
+    return obj;
+  }
+  if (typeof value === "bigint") return value.toString();
+  return value;
 }

@@ -17,11 +17,11 @@ spec.operation(operation("kv.get", { input: unit(), output: ref("GetResult") }))
 spec.scenario(
   scenario("kv.echo.roundtrip", "echoes")
     .call("echo", "kv.echo", literal(structValue("EchoRequest", new Map([
-      ["revision", int64Value(1n)],
+      ["revision", int64Value(9223372036854775807n)],
     ]))))
     .expectEqual(
       binding("echo"),
-      literal(structValue("EchoResult", new Map([["revision", int64Value(1n)]]))),
+      literal(structValue("EchoResult", new Map([["revision", int64Value(9223372036854775807n)]]))),
     )
     .build(),
 );
