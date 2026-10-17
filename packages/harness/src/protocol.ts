@@ -9,7 +9,7 @@ import type { JSONValue } from "@execspec/core";
 
 export const PROTOCOL_VERSION = 1;
 /** Protocol v1 target identifies the implementation language. */
-export const WIRE_TARGETS: readonly string[] = ["swift", "typescript"];
+export const WIRE_TARGETS: readonly string[] = ["swift", "typescript", "java"];
 export const MAX_LINE_BYTES = 16 * 1024 * 1024;
 
 export interface HelloMessage {
