@@ -10,6 +10,8 @@ import { generateSwiftCommand } from "./generate-swift-command.js";
 import { generateTypescriptCommand } from "./generate-typescript-command.js";
 import { testCommand } from "./test-command.js";
 import { initCommand } from "./init-command.js";
+import { diffCommand, compatibleCommand } from "./compatibility-command.js";
+import { probeCommand } from "./property-command.js";
 
 export interface CliIO {
   writeOut(text: string): void;
@@ -53,6 +55,15 @@ export async function runCli(argv: readonly string[], io: CliIO = defaultIO): Pr
   }
   if (command === "init") {
     return await initCommand(rest, io);
+  }
+  if (command === "diff") {
+    return await diffCommand(rest, io);
+  }
+  if (command === "compatible") {
+    return await compatibleCommand(rest, io);
+  }
+  if (command === "probe") {
+    return await probeCommand(rest, io);
   }
   io.writeErr(`unknown command: ${command}\n${USAGE}`);
   return 2;
