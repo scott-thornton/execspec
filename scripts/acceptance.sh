@@ -36,6 +36,14 @@ swift build --package-path examples/orders-swift
 $CLI test --ir build/orders.execspec.json --host examples/orders-swift/.build/debug/OrdersHost
 $CLI test --ir build/orders.execspec.json --host examples/orders-ts/host.mjs
 
+echo "== menu pricing example: modifier math, zone minimum, domain errors =="
+$CLI compile --module examples/menu-spec/dist/spec.js --out build/menu.execspec.json
+$CLI generate swift --ir build/menu.execspec.json --out examples/menu-swift/Sources/MenuGenerated >/dev/null
+$CLI generate typescript --ir build/menu.execspec.json --out examples/menu-ts/src/MenuGenerated >/dev/null
+swift build --package-path examples/menu-swift
+$CLI test --ir build/menu.execspec.json --host examples/menu-swift/.build/debug/MenuHost
+$CLI test --ir build/menu.execspec.json --host examples/menu-ts/host.mjs
+
 echo "== determinism: second compile is byte-identical =="
 $CLI compile --module examples/kv-spec/dist/spec.js --out build/kv.execspec.json.2
 cmp build/kv.execspec.json build/kv.execspec.json.2

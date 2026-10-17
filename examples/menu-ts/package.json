@@ -1,0 +1,21 @@
+{
+  "name": "@execspec/example-menu-ts",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@execspec/ts-generator": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scott-thornton/execspec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scott-thornton/execspec/issues"
+  }
+}
