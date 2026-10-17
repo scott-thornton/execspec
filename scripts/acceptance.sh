@@ -44,6 +44,14 @@ swift build --package-path examples/menu-swift
 $CLI test --ir build/menu.execspec.json --host examples/menu-swift/.build/debug/MenuHost
 $CLI test --ir build/menu.execspec.json --host examples/menu-ts/host.mjs
 
+echo "== billing example: trials, proration, state machine =="
+$CLI compile --module examples/billing-spec/dist/spec.js --out build/billing.execspec.json
+$CLI generate swift --ir build/billing.execspec.json --out examples/billing-swift/Sources/BillingGenerated >/dev/null
+$CLI generate typescript --ir build/billing.execspec.json --out examples/billing-ts/src/BillingGenerated >/dev/null
+swift build --package-path examples/billing-swift
+$CLI test --ir build/billing.execspec.json --host examples/billing-swift/.build/debug/BillingHost
+$CLI test --ir build/billing.execspec.json --host examples/billing-ts/host.mjs
+
 echo "== determinism: second compile is byte-identical =="
 $CLI compile --module examples/kv-spec/dist/spec.js --out build/kv.execspec.json.2
 cmp build/kv.execspec.json build/kv.execspec.json.2
