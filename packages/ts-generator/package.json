@@ -25,5 +25,11 @@
   "bugs": {
     "url": "https://github.com/scott-thornton/execspec/issues"
   },
-  "homepage": "https://github.com/scott-thornton/execspec#readme"
+  "homepage": "https://github.com/scott-thornton/execspec#readme",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
