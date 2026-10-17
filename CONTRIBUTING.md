@@ -18,6 +18,11 @@ not erode. The short version:
   bytes.
 - One logical change per commit. Prefixes: `feat:`, `fix:`, `docs:`,
   `build:`, `test:`, optionally scoped like `feat(harness):`.
+- `main` is PR-gated: required `check` CI plus linear history. Ship with
+  `scripts/ship.sh` from a branch - it pushes, opens the PR, waits for
+  green, rebase-merges, and cleans up (pass `--squash` for messy
+  branches). The local gate (`npm run check`) before pushing is still
+  the first line of defense; the required check is the second.
 
 New type kinds, scenario step kinds, or targets are additive work -
 prefer rejecting ambiguous input over coercing it, and prefer a smaller
