@@ -14,7 +14,7 @@ export function javaValueTypeName(type: ValueType): string {
     case "bytes": return "byte[]";
     case "ref": return javaTypeName(type.typeId);
     case "list": return `List<${javaValueTypeName(type.element)}>`;
-    case "map": return `Map<${javaValueTypeName(type.key)}, ${javaValueTypeName(type.value)}>`;
+    case "map": return `Map<${boxedTypeName(javaValueTypeName(type.key))}, ${boxedTypeName(javaValueTypeName(type.value))}>`;
   }
 }
 
@@ -32,7 +32,7 @@ export function emitJavaTypes(types: readonly TypeDeclaration[]): string {
         .map((field) => {
           const prop = javaPropertyName(field.name);
           const type = javaValueTypeName(field.type);
-          return field.optional ? `@Nullable ${type} ${prop}` : `${type} ${prop}`;
+          return field.optional ? `${boxIfPrimitive(type)} ${prop}` : `${type} ${prop}`;
         })
         .join(", ");
       const body = declaration.fields
@@ -78,6 +78,15 @@ ${variants}
     }
   }
   return chunks.join("\n");
+}
+
+function boxedTypeName(type: string): string {
+  switch (type) {
+    case "boolean": return "Boolean";
+    case "long": return "Long";
+    case "double": return "Double";
+    default: return type;
+  }
 }
 
 function capitalize(text: string): string {

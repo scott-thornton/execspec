@@ -7,6 +7,7 @@ import { javaValueTypeName } from "./emit.js";
 export function decoderExpression(type: ValueType): string {
   if (type.kind === "ref") return `decode${javaTypeName(type.typeId)}`;
   if (type.kind === "list") return `decodeListOf${listElementName(type.element)}`;
+  if (type.kind === "map") return `decodeMapOf${listElementName(type.key)}To${listElementName(type.value)}`;
   return `decodeValue_${type.kind}`;
 }
 
@@ -24,6 +25,7 @@ function listElementName(element: ValueType): string {
 export function encoderExpression(type: ValueType): string {
   if (type.kind === "ref") return `encode${javaTypeName(element_typeId(type))}`;
   if (type.kind === "list") return `encodeListOf${listElementName(type.element)}`;
+  if (type.kind === "map") return `encodeMapOf${listElementName(type.key)}To${listElementName(type.value)}`;
   return `encodeValue_${type.kind}`;
 }
 
@@ -49,6 +51,22 @@ export function emitJavaCodecs(ir: SemanticIR): string {
   }
   for (const elementKey of listElements) {
     chunks.push(emitListCodec(elementKey));
+  }
+
+  // Detect all map key-value combinations and generate per-type map codecs
+  const mapCombos = new Set<string>();
+  for (const declaration of ir.types as readonly TypeDeclaration[]) {
+    if (declaration.kind === "struct") {
+      for (const field of declaration.fields) {
+        if (field.type.kind === "map") {
+          mapCombos.add(`${listElementName(field.type.key)}=>${listElementName(field.type.value)}`);
+        }
+      }
+    }
+  }
+  for (const combo of mapCombos) {
+    const [keyName, valueName] = combo.split("=>") as [string, string];
+    chunks.push(emitMapCodec(keyName, valueName));
   }
 
   for (const declaration of ir.types as readonly TypeDeclaration[]) {
@@ -386,5 +404,42 @@ function emitListCodec(elementKey: string): string {
         List<JSONValue> items = new ArrayList<>();
         for (${javaType} item : value) items.add(${encodeCall}(item));
         return JSONValue.arr(items);
+    }`;
+}
+
+
+function emitMapCodec(keyName: string, valueName: string): string {
+  const keyJavaType = keyName === "Long" ? "Long" : keyName;
+  const valueJavaType = valueName;
+  const keyDecode = keyName === "String" ? "(String) entry.getKey()"
+    : keyName === "Long" ? "Long.parseLong((String) entry.getKey())"
+    : `(String) entry.getKey()`;
+  const keyEncode = keyName === "String" ? "entry.getKey()"
+    : keyName === "Long" ? "String.valueOf(entry.getKey())"
+    : "entry.getKey()";
+  const valueDecode = valueName === "String" ? "decodeValue_string"
+    : valueName === "Long" ? "decodeValue_int64"
+    : valueName === "Double" ? "decodeValue_float64"
+    : `decode${valueName}`;
+  const valueEncode = valueName === "String" ? "encodeValue_string"
+    : valueName === "Long" ? "encodeValue_int64"
+    : valueName === "Double" ? "encodeValue_float64"
+    : `encode${valueName}`;
+
+  return `    static Map<${keyJavaType}, ${valueJavaType}> decodeMapOf${keyName}To${valueName}(JSONValue value) {
+        if (!(value instanceof JSONValue.Obj obj)) throw fail("map: expected a JSON object");
+        Map<${keyJavaType}, ${valueJavaType}> result = new LinkedHashMap<>();
+        for (Map.Entry<String, JSONValue> entry : obj.entries().entrySet()) {
+            result.put(${keyDecode}, ${valueDecode}(entry.getValue()));
+        }
+        return result;
+    }
+
+    static JSONValue encodeMapOf${keyName}To${valueName}(Map<${keyJavaType}, ${valueJavaType}> value) {
+        Map<String, JSONValue> m = new LinkedHashMap<>();
+        for (Map.Entry<${keyJavaType}, ${valueJavaType}> entry : value.entrySet()) {
+            m.put(${keyEncode}, ${valueEncode}(entry.getValue()));
+        }
+        return JSONValue.obj(m);
     }`;
 }
