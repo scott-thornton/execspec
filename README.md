@@ -271,6 +271,8 @@ property-based testing. The CLI loads compiled ESM modules, not raw
   `docs/protocol-v1.md` - the normative documents.
 - `CONTRIBUTING.md` and `AGENTS.md` - how to change this repository
   (and the rules that must not erode).
+- `ROADMAP.md` - where this is going and, just as deliberately, where it
+  is not going.
 
 ## Repository development commands
 
