@@ -81,12 +81,21 @@ export async function compatibleCommand(args: readonly string[], io: CliIO): Pro
   const breaking = changes.filter((c) => !c.compatible);
   if (breaking.length === 0) {
     io.writeOut("compatible: yes\n");
+    io.writeOut("\nchecked:\n");
+    io.writeOut("  every operation in old exists in new\n");
+    io.writeOut("  all " + oldIR.operations.length + " operation input/output types pass variance rules\n");
+    io.writeOut("  all " + oldIR.types.length + " type declarations checked for field/case changes\n");
+    io.writeOut("  all " + oldIR.scenarios.length + " scenarios exist in new with identical step contents\n");
+    io.writeOut("\nnot checked:\n");
+    io.writeOut("  behavioral equivalence of implementations\n");
+    io.writeOut("  semantic model changes (governed by digest lineage)\n");
     return 0;
   }
   io.writeOut("compatible: no\n");
   for (const change of breaking) {
-    io.writeOut(`  breaking: ${change.scope}: ${change.description}\n`);
+    io.writeOut("  breaking: " + change.scope + ": " + change.description + "\n");
   }
+  io.writeOut("\n" + breaking.length + " breaking change(s) found across " + changes.length + " total change(s)\n");
   return 1;
 }
 

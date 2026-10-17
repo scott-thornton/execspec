@@ -1,19 +1,27 @@
 /**
- * `execspec probe`: property-based differential conformance.
- * Generates deterministic input values from the spec, sends them to
- * every implementation, and verifies all implementations agree.
+ * `execspec probe`: deterministic differential conformance.
+ * Generates deterministic inputs from the spec, sends them to every
+ * implementation, and verifies all implementations agree.
  *
- * The generator is seeded by (specDigest, operationId, iteration), so
- * every implementation receives identical inputs without any
- * coordination. Disagreements are reported with the exact input that
- * exposed the divergence.
+ * Verdict semantics (docs/verdicts.md):
+ * - "N disagreements" means: for N of the generated inputs, at least two
+ *   hosts produced semantically different outputs. The exact input and
+ *   both output values are reported.
+ * - "N failed (category)" means: N probes could not complete comparison.
+ *   Each failure is classified (crash, decode, timeout, other) and
+ *   reported with the operation, iteration, and category. Failed probes
+ *   cause exit 1 (fail-closed): inability to verify agreement is not
+ *   evidence of agreement.
+ * - "0 disagreements, 0 failed" means: for the specific inputs generated
+ *   by (digest, operation, iteration, seed), all hosts produced
+ *   identical outputs. This is not a proof of general agreement; it is
+ *   evidence bounded by the generator's coverage.
  */
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  parseTypeId,
   decodeSemanticIRDocument,
   specificationDigest,
   buildIRTypeEnvironment,
@@ -35,19 +43,26 @@ import {
   unitValue,
 } from "@execspec/core";
 import type {
-  JSONValue,
   OperationId,
-  ScenarioIR,
-  SemanticIR,
   SemanticIRDocument,
   SemanticValue,
-  TypeDeclaration,
   TypeEnvironment,
   ValueType,
+  TypeId,
 } from "@execspec/core";
-import { spawnHost } from "@execspec/harness";
+import { ConformanceError, spawnHost } from "@execspec/harness";
 import type { HostCommand, HostProcess } from "@execspec/harness";
 import type { CliIO } from "./index.js";
+
+type ProbeFailureCategory = "crash" | "decode" | "timeout" | "other";
+
+interface ProbeFailure {
+  readonly operationId: string;
+  readonly iteration: number;
+  readonly hostIndex: number;
+  readonly category: ProbeFailureCategory;
+  readonly detail: string;
+}
 
 export async function probeCommand(args: readonly string[], io: CliIO): Promise<number> {
   const values = parseProbeFlags(args);
@@ -82,15 +97,15 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
   const typeEnv: TypeEnvironment = { declarations: env.declarations };
 
   io.writeOut(`probing ${document.semantic.operations.length} operations x ${iterations} iterations against ${hosts.length} hosts\n`);
+  io.writeOut(`seed: ${seedBase}, digest: ${digest.slice(0, 16)}...\n`);
 
   let totalProbes = 0;
   let disagreements = 0;
-  let failedProbes = 0;
+  const failures: ProbeFailure[] = [];
 
   const sortedOps = [...document.semantic.operations].sort((a, b) => compareByCodePoint(a.id, b.id));
 
   for (const operation of sortedOps) {
-    // Spawn one host per implementation for this operation
     const hostProcs: HostProcess[] = [];
     for (const hostPath of hosts) {
       try {
@@ -107,48 +122,54 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
     for (let iteration = 0; iteration < iterations; iteration++) {
       const input = generateInput(operation.input, typeEnv, digest, operation.id, iteration, seedBase);
       const validation = validateValue(input, operation.input, typeEnv);
-      if (validation.length > 0) continue; // skip invalid generations
+      if (validation.length > 0) continue;
 
       const encoded = encodeSemanticValue(input, operation.input, typeEnv);
       const outputs: SemanticValue[] = [];
-      let allSucceeded = true;
+      let failure: ProbeFailure | undefined;
 
       for (let h = 0; h < hostProcs.length; h++) {
+        const host = hostProcs[h];
+        if (host === undefined) { failure = { operationId: operation.id, iteration, hostIndex: h, category: "other", detail: "host unavailable" }; break; }
         try {
-          const host = hostProcs[h];
-            if (host === undefined) { allSucceeded = false; break; }
-            const outputJson = await host.request(operation.id, encoded, 5000);
+          const outputJson = await host.request(operation.id, encoded, 5000);
           const decodedOutput = decodeSemanticValue(outputJson, operation.output, typeEnv);
           if (decodedOutput.ok) {
             outputs.push(decodedOutput.value);
           } else {
-            allSucceeded = false;
+            const issues = decodedOutput.issues.map((i) => `${i.path}: ${i.code}`).join("; ");
+            failure = { operationId: operation.id, iteration, hostIndex: h, category: "decode", detail: `output failed validation: ${issues}` };
             break;
           }
-        } catch {
-          allSucceeded = false;
+        } catch (error) {
+          const category: ProbeFailureCategory = error instanceof ConformanceError
+            ? (error.kind === "HostCrashFailure" ? "crash"
+              : error.kind === "OperationTimeoutFailure" ? "timeout"
+              : "other")
+            : "other";
+          const detail = error instanceof Error ? error.message : String(error);
+          failure = { operationId: operation.id, iteration, hostIndex: h, category, detail };
           break;
         }
       }
 
       totalProbes++;
-      if (!allSucceeded) {
-        failedProbes++;
+      if (failure !== undefined) {
+        failures.push(failure);
         continue;
       }
-      if (allSucceeded && outputs.length === hostProcs.length) {
-        const first = outputs[0];
-        if (first !== undefined) {
-          for (let i = 1; i < outputs.length; i++) {
-            const other = outputs[i];
-            if (other !== undefined && !semanticEqual(first, other)) {
-              disagreements++;
-              io.writeOut(`\nDISAGREEMENT: ${operation.id} iteration ${iteration}\n`);
-              io.writeOut(`  host[0]: ${renderValue(first)}\n`);
-              io.writeOut(`  host[${i}]: ${renderValue(other)}\n`);
-              io.writeOut(`  input:   ${renderValue(input)}\n`);
-              break;
-            }
+
+      const first = outputs[0];
+      if (first !== undefined) {
+        for (let i = 1; i < outputs.length; i++) {
+          const other = outputs[i];
+          if (other !== undefined && !semanticEqual(first, other)) {
+            disagreements++;
+            io.writeOut(`\nDISAGREEMENT: ${operation.id} iteration ${iteration}\n`);
+            io.writeOut(`  host[0]: ${renderValue(first)}\n`);
+            io.writeOut(`  host[${i}]: ${renderValue(other)}\n`);
+            io.writeOut(`  input:   ${renderValue(input)}\n`);
+            break;
           }
         }
       }
@@ -159,11 +180,34 @@ export async function probeCommand(args: readonly string[], io: CliIO): Promise<
     }
   }
 
-  io.writeOut(`\n${totalProbes} probes, ${disagreements} disagreements, ${failedProbes} failed\n`);
-  if (failedProbes > 0) {
-    io.writeOut(`fail-closed: ${failedProbes} probe(s) could not obtain comparable outputs\n`);
+  // Summary with exact claims
+  io.writeOut(`\n${totalProbes} probes, ${disagreements} disagreements, ${failures.length} failed\n`);
+
+  if (failures.length > 0) {
+    const byCategory = new Map<ProbeFailureCategory, number>();
+    for (const f of failures) {
+      byCategory.set(f.category, (byCategory.get(f.category) ?? 0) + 1);
+    }
+    io.writeOut(`\nfailures:\n`);
+    for (const [category, count] of byCategory) {
+      io.writeOut(`  ${category}: ${count}\n`);
+    }
+    for (const f of failures.slice(0, 10)) {
+      io.writeOut(`  ${f.operationId} iter=${f.iteration} host=${f.hostIndex} [${f.category}]: ${f.detail}\n`);
+    }
+    if (failures.length > 10) {
+      io.writeOut(`  ... and ${failures.length - 10} more\n`);
+    }
+    io.writeOut(`\nfail-closed: ${failures.length} probe(s) could not obtain comparable outputs.\n`);
+    io.writeOut(`inability to verify agreement is not evidence of agreement.\n`);
   }
-  return disagreements > 0 || failedProbes > 0 ? 1 : 0;
+
+  if (disagreements === 0 && failures.length === 0) {
+    io.writeOut(`\nall ${totalProbes} probes agreed across ${hosts.length} hosts.\n`);
+    io.writeOut(`this establishes agreement for the tested inputs only; it is not a proof of general agreement.\n`);
+  }
+
+  return disagreements > 0 || failures.length > 0 ? 1 : 0;
 }
 
 // --- Deterministic value generation ---
@@ -192,7 +236,6 @@ function hashSeed(digest: string, operationId: string, iteration: number, seedBa
 
 let prngState = 0;
 function nextRandom(): number {
-  // xorshift32 for deterministic pseudo-randomness
   prngState ^= prngState << 13;
   prngState ^= prngState >>> 17;
   prngState ^= prngState << 5;
@@ -206,7 +249,6 @@ function generateValue(type: ValueType, env: TypeEnvironment, seed: number, dept
 
 function genValue(type: ValueType, env: TypeEnvironment, depth: number): SemanticValue {
   if (depth > 3) {
-    // At max depth, prefer simple values
     switch (type.kind) {
       case "unit": return unitValue();
       case "boolean": return booleanValue(nextRandom() % 2 === 0);
@@ -260,31 +302,28 @@ function genValue(type: ValueType, env: TypeEnvironment, depth: number): Semanti
       return mapValue(entries);
     }
     case "ref": {
-      const decl = env.declarations.get(type.typeId as import("@execspec/core").TypeId);
+      const decl = env.declarations.get(type.typeId as TypeId);
       if (decl === undefined) return stringValue("unknown");
       switch (decl.kind) {
         case "struct": {
           const fields = new Map<string, SemanticValue>();
           for (const field of decl.fields) {
-            if (field.optional && nextRandom() % 3 === 0) continue; // sometimes omit optional
+            if (field.optional && nextRandom() % 3 === 0) continue;
             fields.set(field.name, genValue(field.type, env, depth + 1));
           }
           return structValue(decl.id, fields);
         }
         case "enum": {
-          const cases = decl.cases;
-          const caseName = cases[nextRandom() % cases.length] ?? cases[0] ?? "unknown";
-          return enumValue(decl.id as never, caseName);
+          const caseName = decl.cases[nextRandom() % decl.cases.length] ?? decl.cases[0] ?? "unknown";
+          return enumValue(decl.id, caseName);
         }
         case "union": {
-          const cases = decl.cases;
-          const chosen: { name: string; payload: ValueType } | undefined = cases[nextRandom() % cases.length] ?? cases[0];
+          const chosen: { name: string; payload: ValueType } | undefined = decl.cases[nextRandom() % decl.cases.length] ?? decl.cases[0];
           if (chosen === undefined) return stringValue("no-case");
-          if (chosen === undefined) return unionValue(decl.id as never, "unknown");
           if (chosen.payload.kind === "unit") {
-            return unionValue(decl.id as never, chosen.name);
+            return unionValue(decl.id, chosen.name);
           }
-          return unionValue(decl.id as never, chosen.name, genValue(chosen.payload, env, depth + 1));
+          return unionValue(decl.id, chosen.name, genValue(chosen.payload, env, depth + 1));
         }
       }
     }

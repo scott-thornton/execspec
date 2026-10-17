@@ -264,6 +264,7 @@ property-based testing. The CLI loads compiled ESM modules, not raw
 - `docs/getting-started.md` - the full walkthrough: author, compile,
   generate both targets, implement, run conformance, troubleshoot.
 - `docs/cli-reference.md` - every command, flag, and exit code.
+- `docs/verdicts.md` - what every verdict establishes and does not.
 - `docs/compatibility.md` - what bumps the digest lineage, IR version,
   or protocol version; the domain-separated digest; the conformance
   vector corpus policy.
