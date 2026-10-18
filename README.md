@@ -2,27 +2,29 @@
 
 TypeScript authors a portable behavioral specification. The
 specification compiles to a canonical, language-neutral semantic IR.
-Swift is generated strictly as an implementation target. A TypeScript
-harness verifies any implementation through a language-neutral process
-protocol.
+Swift, TypeScript, and Java targets are generated strictly from that IR.
+A harness verifies any implementation as a black box over a
+language-neutral process protocol.
 
-> Swift is an implementation target, not a specification language.
+> The specification owns the meaning. Implementation targets own
+> nothing but code.
 
 ## What execspec is
 
-A v0.1 vertical slice of an executable specification system:
+An executable specification system with three capabilities no existing
+tool combines:
 
-- **Author** types, operations, and behavioral scenarios in TypeScript
-  through a static DSL - no callbacks, no async test bodies; scenarios
-  compile to data.
-- **Compile** to canonical Semantic IR whose SHA-256 digest is the
-  specification's identity. Declaration order is non-semantic; scenario
-  step order is.
-- **Generate** Swift types, an implementation protocol, wire codecs, and
-  a dispatcher - all deterministic, all derived from IR only.
-- **Implement** the generated protocol by hand; the harness spawns your
-  host as a black box, one fresh process per scenario, and judges only
-  portable observations over NDJSON on stdin/stdout.
+- **Structural IDL** - types, operations, and their shapes (like
+  Protobuf or OpenAPI).
+- **Executable behavioral semantics** - declarative scenarios that pin
+  exact expected outputs, plus differential probing that generates
+  deterministic inputs and verifies all implementations agree (not
+  just static annotations like Smithy traits).
+- **Independent cross-language conformance** - black-box verification
+  through a process protocol, one fresh host per scenario, with
+  digest-matched identity preventing stale implementations from
+  passing (Protobuf has conformance for serialization only; nobody
+  has it for business logic).
 
 ## Architecture
 
@@ -31,46 +33,74 @@ TypeScript DSL ──build──▶ AuthoringGraph
                               │ compile (validate, lower, normalize)
                               ▼
                         Semantic IR (canonical) ─── digest = SHA-256
-                              │ generate swift          │ interpret
-                              ▼                         ▼
-                  generated Swift contract      scenario runner (harness)
-                              ▼                         │ NDJSON protocol
-                  handwritten Swift impl  ◀─────────────┘
+                              │                          │
+              ┌───────────────┼───────────────┐          │
+              ▼               ▼               ▼          │
+     generated Swift   generated Java   generated TS     │
+     contract + impl   contract + impl  contract + impl  │
+              │               │               │          │
+     handwritten impl  handwritten impl  handwritten impl │
+              │               │               │          │
+              └───────┬───────┘───────┬───────┘          │
+                      │   NDJSON protocol              │
+                      ▼               ▼                  │
+              scenario runner    differential probe      │
+              (conformance)      (property-based)        │
+                      │               │                  │
+                      └───────┬───────┘                  │
+                              ▼                          │
+                    conformance evidence ◀───────────────┘
 ```
 
-Packages: `@execspec/core` (semantic model, IR, digest),
-`@execspec/dsl` (authoring), `@execspec/compiler`,
-`@execspec/swift-generator` (IR-only), `@execspec/harness`
-(IR-only), `@execspec/cli`. Swift side: `targets/swift-runtime`
-(protocol runtime) and `examples/kv-swift` (reference implementation).
+## Reference examples
+
+Four domains, each implemented in multiple languages, all passing the
+same scenarios:
+
+| Example | Scenarios | Swift | TypeScript | Java |
+|---------|-----------|-------|------------|------|
+| KV store | 11 | 11/11 | 11/11 | 11/11 |
+| Ordering | 15 | 15/15 | 15/15 | 15/15 |
+| Menu pricing | 7 | 7/7 | 7/7 | 7/7 |
+| Billing (proration) | 9 | 9/9 | 9/9 | 9/9 |
+
+The billing example is the sharpest demonstration: integer proration
+math (`credit = -(oldPrice * remaining / totalDays)` with floor
+division on int64) must produce identical results in all three
+languages, and the scenarios prove it does.
 
 ## Requirements
 
-- macOS with a Swift 6 toolchain (the runtime uses POSIX descriptors via
-  `Darwin`; Linux is not yet a supported host platform)
-- Node.js ≥ 24 and npm (workspaces)
+- macOS with a Swift 6 toolchain
+- JDK 17+ (for the Java target)
+- Node.js >= 24 and npm
 - Bash for `scripts/acceptance.sh`
 
 ## Install
 
-The packages are not yet published to npm - use it from a clone:
-
 ```bash
-git clone <this-repository>
+git clone https://github.com/scott-thornton/execspec.git
 cd execspec
 npm ci
 npm run build
 ```
 
-Every command below runs from the repository root.
+Or scaffold a new specification package:
 
-## Define a specification
+```bash
+node packages/cli/dist/index.js init --name my-contract --out ./my-contract
+cd my-contract && npm install && npm test
+```
+
+## Quick start
+
+### 1. Author a specification
 
 ```ts
 import {
-  specification, struct, union, string, unit, int64, list, ref,
+  specification, struct, union, string, unit, int64, ref,
   operation, scenario, literal, binding,
-  structValue, stringValue, unionValue, unitValue, listValue, int64Value,
+  structValue, stringValue, unionValue, unitValue, int64Value,
 } from "@execspec/dsl";
 
 const spec = specification({ name: "kv", version: "0.1.0" });
@@ -97,48 +127,37 @@ spec.scenario(
 export default spec.build();
 ```
 
-Two complete examples live in the repository:
-
-- `examples/kv-spec` - the systems example: eleven scenarios including
-  the full-width int64 wire proof and process isolation, implemented in
-  both Swift (`examples/kv-swift`) and TypeScript (`examples/kv-ts`).
-- `examples/orders-spec` - a realistic ordering domain: carts, exact
-  integer money math, promo thresholds, currency rules, and checkout
-  with decline paths. Fifteen scenarios pin the business rules; the
-  same suite passes against the Swift (`examples/orders-swift`) and
-  TypeScript (`examples/orders-ts`) implementations - identical money,
-  identical behavior, two languages.
-
-## Compile it
+### 2. Compile to canonical IR
 
 ```bash
 node packages/cli/dist/index.js compile \
-  --module ./examples/kv-spec/dist/spec.js \
-  --out ./build/kv.execspec.json
+  --module ./my-contract/dist/spec.js \
+  --out ./build/contract.execspec.json
 ```
 
-The command prints the specification digest and writes the canonical IR
-document (one JSON line plus a trailing newline). Recompiling a
-semantically identical specification always produces identical bytes.
-
-## Generate Swift
+### 3. Generate implementation targets
 
 ```bash
+# Swift
 node packages/cli/dist/index.js generate swift \
-  --ir ./build/kv.execspec.json \
-  --out ./examples/kv-swift/Sources/KVGenerated
+  --ir ./build/contract.execspec.json --out ./swift-app/Sources/Generated
+
+# TypeScript
+node packages/cli/dist/index.js generate typescript \
+  --ir ./build/contract.execspec.json --out ./server/src/Generated
+
+# Java
+node packages/cli/dist/index.js generate java \
+  --ir ./build/contract.execspec.json --out ./java-app/src/com/execspec/generated
 ```
 
-This produces exactly four files - `ExecSpecTypes.swift`,
-`ExecSpecImplementation.swift`, `ExecSpecCodecs.swift`,
-`ExecSpecDispatcher.swift` - into the output directory atomically.
+Each target gets four files: types, implementation protocol, wire
+codecs, and a dispatcher - all deterministic, all derived from IR only.
 
-## Implement the generated Swift contract
+### 4. Implement the generated contract
 
 ```swift
-import ExecSpecRuntime
-import KVGenerated
-
+// Swift
 public actor KVStore: KVSpecificationImplementation {
     private var values: [String: String] = [:]
 
@@ -151,81 +170,93 @@ public actor KVStore: KVSpecificationImplementation {
         guard let value = values[input.key] else { return .missing }
         return .found(value)
     }
+}
+```
 
-    public func kvDelete(_ input: DeleteRequest) async throws -> ExecSpecUnit {
-        values.removeValue(forKey: input.key)
-        return ExecSpecUnit()
+```typescript
+// TypeScript
+export class KVStore implements KVSpecificationImplementation {
+    private readonly values = new Map<string, string>();
+
+    public kvPut(input: PutRequest): ExecSpecUnit {
+        this.values.set(input.key, input.value);
+        return undefined;
     }
 
-    public func kvList(_ input: ExecSpecUnit) async throws -> KeyList {
-        KeyList(keys: values.keys.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) })
-    }
-
-    public func kvEchoRevision(_ input: RevisionRequest) async throws -> RevisionResult {
-        RevisionResult(revision: input.revision)
+    public kvGet(input: GetRequest): LookupResult {
+        const value = this.values.get(input.key);
+        return value === undefined ? { kind: "missing" } : { kind: "found", value };
     }
 }
 ```
 
-The host executable is three lines (`examples/kv-swift/Sources/KVHost`):
-create the store, wrap it in the generated dispatcher, call
-`runExecSpecHost`. Swift `throws` signals implementation exceptions
-only; domain failures (like `GetResult.missing`) are output values.
+### 5. Run conformance
 
 ```bash
-swift build --package-path examples/kv-swift
-```
-
-## Generate TypeScript (the second implementation target)
-
-```bash
-node packages/cli/dist/index.js generate typescript \
-  --ir ./build/kv.execspec.json \
-  --out ./examples/kv-ts/src/KVGenerated
-```
-
-The same IR generates a TypeScript contract (`examples/kv-ts`): a
-handwritten `KVStore` implements it, and the **same conformance suite**
-verifies it - one specification, two languages, identical verdicts.
-
-```bash
-node packages/cli/dist/index.js test --ir ./build/kv.execspec.json --host ./examples/kv-ts/host.mjs
-```
-
-## Run conformance tests
-
-```bash
+# Against any implementation
 node packages/cli/dist/index.js test \
-  --ir ./build/kv.execspec.json \
-  --host ./examples/kv-swift/.build/debug/KVHost \
+  --ir ./build/contract.execspec.json \
+  --host ./swift-app/.build/debug/Host \
   --timeout-ms 5000
 ```
 
-Every scenario runs in a fresh host process; the exit code is zero only
-when all scenarios pass.
+Every scenario runs in a fresh host process. Exit 0 only when all pass.
 
-## What "green" means
+### 6. Check compatibility between versions
 
-A passing conformance run proves exactly one thing: for the scenarios in
-the specification, the implementation produced the specified
-observations. It is not a proof of general correctness, and scenarios
-are deliberately exact-value and declarative. Treat a green run as
-strong evidence of contract conformance, not as verification of the
-system.
+```bash
+node packages/cli/dist/index.js compatible \
+  --old ./build/v1.execspec.json \
+  --new ./build/v2.execspec.json
+```
+
+### 7. Probe for divergence between implementations
+
+```bash
+node packages/cli/dist/index.js probe \
+  --ir ./build/contract.execspec.json \
+  --host ./swift-host \
+  --host ./ts-host \
+  --host ./java-host \
+  --iterations 50
+```
+
+Generates deterministic inputs seeded by `(digest, operation,
+iteration)`. Every implementation receives identical inputs without
+coordination. Any disagreement is reported with the exact input that
+exposed the divergence.
+
+## What every verdict means
+
+Every tool states exactly what it establishes and what it does not.
+See `docs/verdicts.md` for the full normative definitions. The short
+version:
+
+- **PASS** - for these exact steps, the implementation produced
+  semantically equal outputs. Not a proof of general correctness.
+- **compatible: yes** - no breaking structural changes found. Not a
+  proof of behavioral equivalence.
+- **0 disagreements** - for the tested inputs, all implementations
+  agreed. Not a proof of general agreement.
+- **N failed** - N probes could not complete. Inability to verify is
+  not evidence of agreement.
 
 ## Semantic guarantees
 
 - int64 is full-range signed 64-bit end to end (wire form
   `{"$i64":"9223372036854775807"}`); JavaScript `number` is never used.
+- float64 uses canonical ECMAScript shortest-round-trip spelling;
+  `-0` equals `0`; NaN equals NaN.
 - Strings compare by exact Unicode scalar sequence; no normalization.
 - Structs/unions are nominal; struct field order is non-semantic; list
   order is semantic.
 - Optional struct fields distinguish absent from rejected explicit
   `null`.
 - Unknown fields, unknown cases, and malformed unions are rejected on
-  the wire by both sides.
-- The digest covers the semantic IR only; declaration order never
-  changes it, scenario step order always does.
+  the wire by every target.
+- The digest covers the semantic IR only, domain-separated by
+  semantic-model lineage; declaration order never changes it, scenario
+  step order always does.
 - Handshake checks protocol version and digest: a stale host fails
   before any operation is dispatched.
 - Implementations cannot see scenario identity; only operation ID and
@@ -233,47 +264,35 @@ system.
 
 ## Generated-code contract
 
-- Generated files are disposable build products; never edit them (every
-  file says `// Generated by execspec. DO NOT EDIT.`).
-- Your implementation depends only on the generated public protocol and
-  types; nothing else.
-- Regeneration is deterministic and idempotent: this repository commits
-  the generated Swift sources, so `git diff` after regeneration must be
-  empty.
-- A digest mismatch at handshake means stale generated code or a stale
-  host build - regenerate and rebuild.
-- Target-native Swift tests remain appropriate for Swift-specific
-  concerns (actor behavior, codec edges); conformance is what the
-  harness proves.
+- Generated files are disposable build products; never edit them.
+- Your implementation depends only on the generated public protocol
+  and types.
+- Regeneration is deterministic and idempotent: `git diff` after
+  regeneration must be empty.
+- A digest mismatch at handshake means stale generated code or a
+  stale host build.
 
-## Current v0.1 limitations
+## Current limitations
 
 Type system: `unit`, `boolean`, `int64`, `float64`, `string`, `bytes`,
 optional struct fields, `list`, `map<string|int64, T>`, named structs,
-enums, and tagged unions; no timestamps, sets, tuples, or recursive
-types. Scenarios support only `call` and `expectEqual` steps with
-literal/binding/field expressions (plus table-driven outlines at
-authoring time). Three implementation targets (Swift, TypeScript, Java);
-sequential requests per host; no callbacks/streaming/reset; no
-property-based testing. The CLI loads compiled ESM modules, not raw
-`.ts` files. Parallel scenario execution is available via
-`--concurrency`, and `--scenario` filters by id substring.
+enums, and tagged unions. No timestamps, sets, tuples, or recursive
+types. Scenarios support `call` and `expectEqual` steps with
+literal/binding/field expressions plus table-driven outlines.
+Three implementation targets (Swift, TypeScript, Java). Sequential
+requests per host. No callbacks, streaming, or reset.
 
 ## Documentation
 
-- `docs/getting-started.md` - the full walkthrough: author, compile,
-  generate both targets, implement, run conformance, troubleshoot.
-- `docs/cli-reference.md` - every command, flag, and exit code.
-- `docs/verdicts.md` - what every verdict establishes and does not.
-- `docs/compatibility.md` - what bumps the digest lineage, IR version,
-  or protocol version; the domain-separated digest; the conformance
-  vector corpus policy.
-- `docs/specification.md`, `docs/semantic-model.md`, `docs/ir-v1.md`,
-  `docs/protocol-v1.md` - the normative documents.
+- `docs/getting-started.md` - full walkthrough
+- `docs/cli-reference.md` - every command, flag, and exit code
+- `docs/verdicts.md` - what every verdict establishes and does not
+- `docs/compatibility.md` - version-change policy and digest lineage
+- `docs/semantic-model.md` - the normative value and equality rules
+- `docs/ir-v1.md` - canonical IR specification
+- `docs/protocol-v1.md` - process protocol specification
 - `CONTRIBUTING.md` and `AGENTS.md` - how to change this repository
-  (and the rules that must not erode).
-- `ROADMAP.md` - where this is going and, just as deliberately, where it
-  is not going.
+- `ROADMAP.md` - where this is going and where it deliberately is not
 
 ## Repository development commands
 
@@ -281,7 +300,11 @@ property-based testing. The CLI loads compiled ESM modules, not raw
 npm ci                 # install
 npm run typecheck      # TypeScript across all workspaces
 npm test               # Node test suites across all workspaces
-npm run test:swift     # Swift runtime + KV implementation tests
-npm run acceptance     # full pipeline: compile → generate → build → conformance
-npm run check          # typecheck + test + test:swift + acceptance
+npm run test:swift     # Swift test suites
+npm run acceptance     # full pipeline: compile, generate, build, conformance
+npm run check          # everything above
 ```
+
+## License
+
+MIT
