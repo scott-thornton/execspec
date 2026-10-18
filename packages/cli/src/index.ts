@@ -12,6 +12,7 @@ import { testCommand } from "./test-command.js";
 import { initCommand } from "./init-command.js";
 import { diffCommand, compatibleCommand } from "./compatibility-command.js";
 import { probeCommand } from "./property-command.js";
+import { importCommand } from "./import-command.js";
 
 export interface CliIO {
   writeOut(text: string): void;
@@ -64,6 +65,9 @@ export async function runCli(argv: readonly string[], io: CliIO = defaultIO): Pr
   }
   if (command === "probe") {
     return await probeCommand(rest, io);
+  }
+  if (command === "import") {
+    return await importCommand(rest, io);
   }
   io.writeErr(`unknown command: ${command}\n${USAGE}`);
   return 2;
