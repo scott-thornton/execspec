@@ -11,20 +11,10 @@ language-neutral process protocol.
 
 ## What execspec is
 
-An executable specification system with three capabilities no existing
-tool combines:
-
-- **Structural IDL** - types, operations, and their shapes (like
-  Protobuf or OpenAPI).
-- **Executable behavioral semantics** - declarative scenarios that pin
-  exact expected outputs, plus differential probing that generates
-  deterministic inputs and verifies all implementations agree (not
-  just static annotations like Smithy traits).
-- **Independent cross-language conformance** - black-box verification
-  through a process protocol, one fresh host per scenario, with
-  digest-matched identity preventing stale implementations from
-  passing (Protobuf has conformance for serialization only; nobody
-  has it for business logic).
+A vertical slice of an executable specification system. It combines
+structural types, executable scenarios, and cross-language conformance
+verification in one tool. Whether that combination is useful is for
+real usage to determine.
 
 ## Architecture
 
